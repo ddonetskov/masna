@@ -12,8 +12,8 @@ N.B. The materials are likely to be improved which will be reflected in the Hist
 
 You can download all files from this repository at once by using the green friendly-looking “Clone or download” button (see the upper right), choose ‘Download ZIP’ when clicking on the button.
 
-# Change History
+# Change History (Reverse Order)
 
-* 2018-01-07 Posted content for Project 1, Project 2
 * 2018-01-08 Posted content for Project 3
+* 2018-01-07 Posted content for Project 1, Project 2
 
