@@ -4,7 +4,7 @@ The projects’ materials are organized in three folders with names like 'ProjectN
 
 The reports are
 
-1. Project 1: “Project 1 - C11 AS6/NetR - Project 1- DD.docx”
+1. Project 1: “Project 1 - C11 AS6/Project_1_Report.docx”
 2. Project 2: “Project 2 - Wiki Norms/wiki_norms.pdf”
 3. Project 3: "Project 3 - CRAN Dependencies/cran_dep.pdf"
 
