@@ -11,13 +11,19 @@ library(tools)
 
 # Initilaization of major variables --------------------------------------------
 
-# matrix of available packages, sadly it does not include the base ones (#BL)
+# 'base' packages, there are also 'recommended' but they are listed in pdb (below)
+i <- installed.packages() 
+bdb <- i[ i[,"Priority"] %in% c("base"), c("Package", "Priority")]
+nrow_bdb <- nrow(bdb)
+
+# matrix of available packages
 pdb <- available.packages()
 nrow_pdb <- nrow(pdb)
 
 # vectors, they will be used later to build data frames to build the network
 nodes_id   <- vector("integer")
 nodes_name <- vector("character")
+nodes_type <- vector("character")
  
 links_from <- vector("integer")
 links_to   <- vector("integer")
@@ -27,17 +33,29 @@ links_type <- vector("character")
 nodes_ids <- new.env(hash = T)
 
 # Populating the list of nodes -------------------------------------------------
-for (i in 1:nrow_pdb) {
-  pkg_name <- pdb[i,1]
+for (i in 1:nrow_bdb) {
+  pkg_name <- bdb[i,1]
   
   nodes_ids[[pkg_name]] <- i
   
   nodes_id[i]   <- i
   nodes_name[i] <- pkg_name
+  nodes_type[i] <- "base"
 }
 
-nodes <- data.frame(cbind(nodes_id, nodes_name))
-names(nodes) <- c('id', 'name')
+for (j in 1:nrow_pdb) {
+  i <- nrow_bdb + j
+  pkg_name <- pdb[j, 1]
+  
+  nodes_ids[[pkg_name]] <- i
+  
+  nodes_id[i]   <- i
+  nodes_name[i] <- pkg_name
+  nodes_type[i] <- "CRAN"  
+}
+
+nodes <- data.frame(cbind(nodes_id, nodes_name, nodes_type))
+names(nodes) <- c('id', 'name', 'type')
 
 # Building the links -----------------------------------------------------------
 
@@ -47,7 +65,7 @@ for (i in 1:nrow_pdb) {
 
   pkg_name <- pdb[i,1]
 
-  for (dep_type in c("Depends", "Imports", "Suggests", "Enhances")) {
+  for (dep_type in c("Depends", "Imports")) {
     for (dep_pkg_name in package_dependencies(pkg_name, db = pdb, which = dep_type)[[1]]) {
       # using the hashed environment for the performance reason
       dep_pkg_name_id <- nodes_ids[[dep_pkg_name]]
@@ -104,6 +122,7 @@ names(links) <- c('to', 'from', 'type')
 
 # Our network with all nodes
 net <- graph_from_data_frame(d = links, vertices = nodes, directed = T)
+net <- simplify(net)
 
 # Export to gml ----------------------------------------------------------------
 write_graph(net, "r_packages.gml", format = "gml")
@@ -117,7 +136,7 @@ f_pajek_net <- file("r_packages.net", "w");
 # dumping information about vertices
 cat(sprintf("*vertices %d\n", length(V(net))), file = f_pajek_net)
 for (i in 1:length(V(net))) {
-  cat(sprintf("%d '%s'\n", i, V(net)$name[i]), file = f_pajek_net)
+  cat(sprintf("%d '%s' %s\n", i, V(net)$name[i], V(net)$type[i]), file = f_pajek_net)
 }
 
 # dumping information about links
