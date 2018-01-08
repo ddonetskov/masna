@@ -304,18 +304,19 @@ plot(net, layout=layout,
 
 # Visualization
 
-Visualization was made in Gephi with manual configuration. An effort of doing 
-the same with igraph provides suboptimal results of nodes and edges overlapping 
-each other.
+The full network visualization without clustering is not informative. It's all
+full of nodes and lines.
 
-The size of nodes reflects the number of in-degrees for that node. The color of 
-node reflects which type ('base', 'CRAN') it belongs to.
+A partial visualization was made in Gephi with manual configuration for nodes with more than
+50 other packages depeding on them. The visual size of nodes reflects the number 
+of in-degrees for that node. The color of node reflects which type ('base', 'CRAN') it belongs to.
 
-The visualization demonstrates the network is centered around several large nodes.
+This kind of visualization helps to understand what the most referenced packages are,
+and what are links between themselves.
 
-image: ![](R_packages_vis.png)
+image: ![](cran_dep_vis.png)
 
-The visualization also saved as R_packages_vis.pdf.
+The partial visualization also saved as cran_dep_vis.pdf.
 
 
 <!--
@@ -331,8 +332,9 @@ dev.off()
 
 # Ideas to Improve Report
 
-1. Dendrogram? Will it work for such a large network?
-2. Try the hierarchical clustering.
+1. Give graphs a more elegant look with ggplot2.
+2. Dendrogram? Will it work for such a large network?
+3. Try the hierarchical clustering.
 3. Provide more interpretaion of the network.
 
 # References
