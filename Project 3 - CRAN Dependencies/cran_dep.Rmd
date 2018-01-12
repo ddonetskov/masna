@@ -66,13 +66,18 @@ The links are the HTTP reference from one page to another.
 
 It's a directed graph by its nature, no weights assigned to the links.
 
-|Property              | Value |
-|:---------------------|:-----------------|
-| Vertices, number     | `r length(V(net))`                                   |
-| Arcs, number         | `r length(E(net))`                                   |
-| Average degree       | `r round(2*length(E(net))/length(V(net)), 1)`        |
-| Diameter             | `r diameter(net, directed = TRUE, weights = NULL)`   |
-| Acyclic?             | `r is.dag(net)`                                      |
+|Property               | Value |
+|:----------------------|:-----------------|
+| Vertices              | `r gorder(net)`                                      |
+| Edges                 | `r as.character(gsize(net))`                         |
+| Directed              | `r ifelse(is.directed(net), "Yes", "No")`            |
+| Weighted              | `r ifelse(is.weighted(net), "Yes", "No")`            |
+| Average degree        | `r round(2*gsize(net)/gorder(net), 1)`               |
+| Diameter              | `r diameter(net, directed = TRUE, weights = NULL)`   |
+| Acyclic               | `r ifelse(is.dag(net), "Yes", "No")`                 |
+| Edge density          | `r as.character(edge_density(net))`                  |
+| Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
+| Transitivity (global) | `r as.character(transitivity(net))`                  |
 
 Interesting to note there are isolated packages i.e. without any relations to any
 other packages, their percentage is
@@ -124,17 +129,6 @@ for (node_id in order(net_deg_out, decreasing = T)[1:10]) {
 ```
 
 ## Components
-
-## Density
-
-The proportion of present edges from all possible edges in the network.
-```{r, echo=F}
-# for undirected network
-# edge_density(net, loops=F)
-
-# for directed network
-ecount(net)/(vcount(net)*(vcount(net)-1))
-```
 
 The nodes along the first found path of the diameter distance.
 ```{r}
@@ -236,6 +230,43 @@ hist(net_bt, breaks = 30, freq = T, main = "", xlab = "Betweenness")
 # plot_dendrogram(net_eb)
 ```
 
+# Eigen values
+
+Identify key nodes using eigenvector centrality
+
+```{r}
+net_ec <- eigen_centrality(net)
+which.max(net_ec$vector)
+```
+
+<!--
+# Cliques
+
+```{r}
+# Identify the largest cliques in the network
+net_lc <- largest_cliques(net)
+
+# Determine all maximal cliques in the network and assign to object 'clq'
+net_clq <- max_cliques(net)
+
+# Calculate the size of each maximal clique.
+table(unlist(lapply(net_clq, length)))
+
+par(mfrow=c(1,2)) # To plot two plots side-by-side
+
+sn1 <- as.undirected(subgraph(net, net_lc[[1]]))
+sn1 <- subgraph(net, net_lc[[2]])
+
+plot(sn1,
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.9,
+     vertex.size = 30,
+     edge.color = 'gray28',
+     main = "Largest Clique 1",
+     layout = layout.circle(sn1)
+)
+```
+-->
 
 # Subnetworks
 
@@ -254,13 +285,13 @@ for (i in 1:length(net_dec)) {
 hist(log(net_sn_len, 10), breaks = 5, xlab = "ln(<number of nodes>")
 ```
 
-# Communities
+# "Do birds of a feather flock together?" (Communities)
 
 TBC...
 
 Determine communities using walktrap algorithm (igraph)
 
-```{r, echo = F}
+```{r, eval=F, echo = F}
 net_cl <- walktrap.community(net, steps = 3)
 
 # Define ob
@@ -302,6 +333,32 @@ plot(net, layout=layout,
 ```
 -->
 
+# Randomization Tests
+
+We generate 100 random graphs with the same node numbers and the edge density 
+as our network, then compare the average path length of those generated networks 
+with the average path length of our network on the frequency historgram.
+
+TBC...
+
+<!--
+```{r}
+gr <- vector('list', 10)
+
+for (i in 1:length(gr)){
+  gr[[i]] <- erdos.renyi.game(n = gorder(net), p.or.m = edge_density(net), type = "gnp") 
+}
+
+gr.apls <- unlist(lapply(gr, mean_distance, directed = FALSE))
+
+hist(gr.apls, breaks = 20)
+abline(v = mean_distance(net, directed=FALSE), col = "red", lty = 3, lwd=2)
+
+# Calculate the proportion of graphs with an average path length lower than our observed
+sum(gr.apls < mean_distance(net))/1000
+```
+-->
+
 # Visualization
 
 The full network visualization without clustering is not informative. It's all
@@ -335,10 +392,14 @@ dev.off()
 1. Give graphs a more elegant look with ggplot2.
 2. Dendrogram? Will it work for such a large network?
 3. Try the hierarchical clustering.
-3. Provide more interpretaion of the network.
+4. Color the network according the last change date of a package (on the year level).
+5. Add additional attribution for nodes like the last change date.
+9. Provide more contexual interpretaion of the network.
 
 # References
-1. CRAN: https://cran.r-project.org
+
+1. The Comprehensive R Archive Network (CRAN): [link](https://cran.r-project.org)
+2. DataCamp course "Network Analysis in R": [link](https://campus.datacamp.com/courses/network-analysis-in-r)
 
 # Appendix A Technical Details of Report
 
