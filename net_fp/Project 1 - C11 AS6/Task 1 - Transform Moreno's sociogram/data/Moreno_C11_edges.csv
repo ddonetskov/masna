@@ -1,0 +1,85 @@
+to,from,relation
+1,11,repulsion
+3,4,repulsion
+4,20,repulsion
+6,4,repulsion
+7,4,repulsion
+10,8,repulsion
+12,19,repulsion
+14,11,repulsion
+14,19,repulsion
+15,9,repulsion
+15,11,repulsion
+15,16,repulsion
+15,17,repulsion
+15,19,repulsion
+15,23,repulsion
+15,24,repulsion
+16,4,repulsion
+16,19,repulsion
+16,24,repulsion
+17,4,repulsion
+19,4,repulsion
+20,2,repulsion
+20,19,repulsion
+21,4,repulsion
+22,9,repulsion
+22,19,repulsion
+23,4,repulsion
+26,4,repulsion
+28,4,repulsion
+3,11,attraction
+4,2,attraction
+5,26,attraction
+7,25,attraction
+8,9,attraction
+11,9,attraction
+12,13,attraction
+18,20,attraction
+19,2,attraction
+19,11,attraction
+20,9,attraction
+21,1,attraction
+23,1,attraction
+23,5,attraction
+23,20,attraction
+24,19,attraction
+25,1,attraction
+25,2,attraction
+27,2,attraction
+28,2,attraction
+28,18,attraction
+3,17,mutual repulsion
+5,15,mutual repulsion
+22,23,mutual repulsion
+15,25,mutual repulsion
+3,25,mutual repulsion
+1,26,mutual attraction
+2,16,mutual attraction
+2,8,mutual attraction
+3,17,mutual attraction
+3,23,mutual attraction
+4,10,mutual attraction
+5,15,mutual attraction
+6,14,mutual attraction
+6,10,mutual attraction
+6,17,mutual attraction
+7,21,mutual attraction
+7,26,mutual attraction
+7,22,mutual attraction
+9,17,mutual attraction
+9,13,mutual attraction
+10,28,mutual attraction
+10,22,mutual attraction
+10,15,mutual attraction
+10,12,mutual attraction
+12,17,mutual attraction
+12,28,mutual attraction
+12,18,mutual attraction
+14,15,mutual attraction
+14,16,mutual attraction
+15,26,mutual attraction
+16,18,mutual attraction
+16,22,mutual attraction
+15,25,mutual attraction
+3,25,mutual attraction

@@ -1,0 +1,494 @@
+---
+title: "Bayesian Data Analysis - Final Project"
+author: "Dmitry Donetskov"
+date: "07 January 2018"
+output:
+  pdf_document:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    
+    number_sections: yes
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Reseach Question (Problem Statement)
+
+Water evaporation is a major concern in planning irrigation. Data are collected 
+daily from June 6 through June 21 in a central Texas location on the following 
+factors that may affect the amount of evaporation:
+
+* DAY: the calendaric number of day
+* For the air temperature:
+    + MAXAT: Maximum daily air temperature;
+    + MINAT: Minimum daily air temperature;
+    + AVAT:  The integrated area under the daily air temperature curve, a measure of average air temperature;
+* For the soil temprature:
+    + MAXST: Maximum daily soil temperature;
+    + MINST: Minimum daily soil temperature;
+    + AVST:  The integrated area under the daily soil temperature curve, a measure of average soil temperature;
+* For the daily humidity: 
+    + MAXH:  Maximum daily humidity;
+    + MINH:  Minimum daily humidity;
+    + AVH:   The integrated area under the daily humidity curve, a measure of average humidity;
+* For the wind:
+    + WIND:  Total wind, measured in miles per day.
+* For the evaporation:
+    + EVAP: Daily total evaporation from the soil.
+
+# Description of Files
+
+|File Name                      | Description|
+|:------------------------------|:-----------|
+| data/irrigation.csv           | Data in the fixed width CSV format                   |
+| script/evaporation.Rmd        | RMarkdown document to generate the current report    |
+| pairs_plot_1.pdf              | Pairs plot for the initial set of data (the A3 size) |
+
+# Initial Configuration
+
+```{r Clean Up, echo=FALSE, message=FALSE}
+rm(list = ls(all.names = T))
+```
+
+```{r Configuration, echo=T, message=FALSE}
+library(ggplot2)
+library(psych)
+library(rstan)
+library(rstanarm)
+library(reshape2)
+
+# source("lm_util.r")
+
+rstan_options(auto_write = T)
+options(mc.cores = parallel::detectCores())
+```
+
+# Data Load
+
+```{r Reading File, echo=T}
+evap_data <- read.table("../data/evaporation.csv", h = T)
+```
+
+```{r Listing, echo=T}
+nrow(evap_data)
+
+head(evap_data, 5)
+```
+
+# Data Investigation
+
+All variables are the range ones. The predicted factor is presented with 
+the EVAP variable.
+
+The DAY variable being *the month day number* day does not look like a good 
+candidate to explain the evaporation for that reason it is reset (to 1) when one 
+month ends and another starts. It might be a good predictor if there are cycles
+in the evaporation. Finding the association of DAY with the probable cycles is
+out of the scope of the current task.
+
+In terms of data preparation for analysis, the data looks good. 
+We don't have any missing values, the data is in the numeric format 
+(as it is meant to be).
+
+All the variables are on the range scale so we can use approprate
+probability distributions for the likelihood function e.g. the normal 
+distribution or the Student's t one.
+
+# Variables to predict
+
+We have one singe variable, EVAP.
+
+# Variables as predictors
+
+Putting DAY aside for the time being, there are ten variables: 
+MAXAT, MINAT, AVAT, MAXST, MINST, AVST, MAXH, MINH, AVH, WIND which span across four physical factors:
+* The air temperature,
+* The soil temprature,
+* The daily humidity,
+* The wind.
+
+We may suspect that there is strong correlation between some variables e.g. 
+between the variables for the air temperature with the ones for the soil
+temperature as these are two physical factors which tend to be strongly correlated
+in the nature with each other.
+
+# Exploratory data analysis
+
+Let's check the pair plots to draw initial conclusions of our data.
+
+```{r Summary, echo=F, eval=FALSE}
+summary(evap_data)
+```
+
+The pairs plot is provided in the pairs_plot.pdf file.
+
+```{r Pairs Plot, echo=FALSE, message=FALSE}
+# A3	297 x 420 mm	11.7 x 16.5 in
+pdf("../pairs_plot_1.pdf", width = 16.5, height = 11.7, paper = 'special') 
+pairs.panels(evap_data)
+dev.off()
+```
+
+Observations from the pairs plot:
+
+1. There are no variables with the normal distribution, the data is skewed.
+2. The data ranges of variables are approximately of the same order.
+3. DAY is not correlated with any other variables so let's exclude it.
+4. EVAP is positevely correlated with MAXST, MAXAT and negatively with AVH
+   which conforms to the laws of physics.
+
+# Regression Diagnostics (Classical Way)
+
+```{r D1_LM1}
+library(car)
+evap_lm_1 <- lm(EVAP ~ ., data = evap_data)
+vif(evap_lm_1)
+```
+
+Most of coefficents are not statistically significant, the VIF factor is quite
+high (more than 10, which is large). That tells us we need to reduce our 
+dimension to a more principal one.
+
+<!--
+Would it be convinient to display the correlation matrix between variables with
+only those numbers which are higher than a certain number?
+```{r, eval=F}
+evap_data_cor <- round(cor(evap_data),2)
+print(evap_data_cor)
+```
+--> 
+
+The correlation matrix (obtained with PROC CORR) indicates there is strong 
+(more than 0.7) correlation between various pairs like
+* MAXST and MINST
+* MAXST and AVST
+* MAXST and AVAT
+* MINST and AVST
+* MINSTR and AVAT
+* AVST and AVAT
+* MINH and AVH
+
+And it’s quite natural as the min/max temperature of air/soil/humidity can indeed
+explain the integrated area under the daily air/soil/humidity temperature curve. 
+And the temperature ranges of different objects closely interacting with each
+other surely will influence each other. 
+The physical model represented by these parameters can be looked quite complete 
+but converting it blindly into the statistical one likely gives us results 
+with little practical meanings as the prediction capability of the model will 
+be weak due to large variance of coefficients.
+
+So, we need to resolve this multicollinearity issue by either excluding 
+those variables which are redundant to the model or by introducing new 
+explanatory variables based on the original ones.
+
+The attempt to group variables of the same meaning (min/max/avg) might make sense. 
+
+Let’s check it.
+
+```{r D2_LM2}
+evap_data_2 <- data.frame(
+  day  = evap_data$DAY,
+  min  = evap_data$MINST + evap_data$MINAT + evap_data$MINH,
+  max  = evap_data$MAXST + evap_data$MAXAT + evap_data$MAXH,
+  avg  = evap_data$AVST  + evap_data$AVAT  + evap_data$AVH,
+  wind = evap_data$WIND,
+  evap = evap_data$EVAP)
+
+evap_lm_2 <- lm(evap ~ ., data = evap_data_2)
+print(summary(evap_lm_2), digits = 5)
+vif(evap_lm_2)
+```
+There are still VIF larger than 10 for MIN and AVG. The correlation matrix also 
+shows that MIN and AVG are correlated.
+
+Let’s exclude MIN from the consideration. The evaporation is probably more 
+explained by the MAX temperature (as the factor of more energy) and MIN is 
+included into AVG so by excluding MIN the information of it will still be kept 
+in AVG.
+
+```{r D3_LM3}
+evap_data_3 <- evap_data_2[, !(names(evap_data_2) %in% "min")]
+evap_lm_3 <- lm(evap ~ ., data = evap_data_3)
+print(summary(evap_lm_3), digits = 5)
+vif(evap_lm_3)
+```
+
+Looking further, one can notice the DAY variable does not probably make sense 
+for the model. Indeed, how the number of day can reduce variance of 
+the evaporation. Excluding it from of the model. 
+
+```{r D4_LM4}
+evap_data_4 <- evap_data_3[, !(names(evap_data_3) %in% "day")]
+evap_lm_4 <- lm(evap ~ ., data = evap_data_4)
+print(summary(evap_lm_4), digits = 5)
+vif(evap_lm_4)
+```
+
+VIF is not changed, R^2 slightly dropped to 0.7285, the model is statistically 
+significant in overall (F-test) and its coefficients are also statistically 
+significant. It looks like as an working one.
+
+## Prediction Plot
+
+```{r LM4 Prediction}
+# prediction plot
+g1 <- ggplot() + xlab("predicted") + ylab("observed") +
+        geom_point(aes(x = predict(evap_lm_4), y = evap_data_4$evap)) + 
+        xlim(-30, 100) + 
+        ylim(-30, 100) +
+        geom_abline(aes(slope = 1, intercept = 0), lty = "dashed", colour = "red")
+plot(g1)
+```
+<!--
+
+# Principal Component Analysis
+
+```{r PCA, eval=F}
+evap_data_pca <- prcomp(evap_data[, -1], center = TRUE, scale. = TRUE) 
+summary(lm(evap_data$EVAP ~ evap_data_pca$x))
+```
+
+-->
+
+# New Set of Explanatory Variables 
+
+Copying the reduced data set into the 'final' data set.
+
+```{r DF}
+evap_data_f <- evap_data_4
+```
+
+<!--
+The pair plot for the new set of explanatory variables
+
+```{r, eval=F}
+# A3	297 x 420 mm	11.7 x 16.5 in
+# pdf("../pairs_plot_1.pdf", width = 16.5, height = 11.7, paper = 'special') 
+# pairs.panels(evap_data_f)
+# dev.off()
+```
+
+-->
+
+# Model Definition
+
+Let's try to answer our research question with the multivariate linear model.
+
+To define it in the Bayesian framework we ideally need to define probability distribution 
+functions for
+
+* the likelihood function,
+* the prior probablity distribution,
+
+and choose the link function.
+
+For the current project, we use the default model built-in the 'stan_lm' function:
+
+<!--
+
+* the link functon is 'identity',
+* the likelihood function as built in in the stan_lm function,
+* the prior probablity distribution as built in in the stan_lm function.
+-->
+
+<!-- Shall we also think of choosing the probablity distribution for jumps 
+(to traverse in the parameters' space (the normal one?), see DBA3, p.169.
+-->
+
+Building x and y for the model:
+
+```{r XY}
+y <- evap_data_f[, "evap"]
+x <- evap_data_f[, !(names(evap_data_f) %in% "evap")]
+```
+
+# Considerations on Priors
+
+Our Bayesian model's main parameters are the coefficients (\(\ B\)). We can 
+presume little about them. Should we probably define their distributions as
+the uniform ones on some intervals? Information about those intervals we can 
+get from the classical linear regression method.
+
+Anyway, they are going to be rather wide intervals as we don't have any
+strong opinion about ourthe priors.
+
+# Bayesian Inference with MCMC
+
+<!--
+Refer DBA3, p.176 for hints on building the model.
+-->
+
+We use stan_lm from rstanarm to get the posteriors.
+
+```{r fit_1, message=FALSE}
+evap_fit_1 <- stan_lm(y ~ ., 
+                      chains = 1,
+                      data   = x,
+                      prior  = NULL,
+                      adapt_delta = 0.99)
+```
+
+<!--
+```{r lm_11}
+# the folowing below does not work, faced the issue simular to described at
+# https://github.com/stan-dev/rstanarm/issues/202 but in the end it says that
+# "failed to create the sampler; sampling not done"
+
+#the regression slopes
+#beta <- runif(4,-1,1)
+#the standard deviation for the simulated data
+#sigma <- 1
+# be aware of the issue described at 
+#evap_lm_11 <- stan(file = "../stan/mlr.stan",
+#                   data = list(N = nrow(x), K = ncol(x), y = y, X = x), pars = c("beta", "sigma"))
+```
+-->
+
+# Diagnostics of MCMC
+
+```{r}
+#cat(get_stancode(evap_fit_1$stanfit))
+
+summary(evap_fit_1, digits = 2)
+```
+
+## Effective Sample Size
+
+The effective sample size (ESS) for the coefficients of 'max' and 'avg' are of 
+several hundrends which means the sampler has been successful to find different
+(effective) samples. Probably, we can increase their number by tuning the sampler's 
+parameters.
+
+The ESS for 'wind' is equal to the total number of samples. That's a bit unusual,
+might there be any problem here?
+
+<!--
+## Autocorrelation
+-->
+
+## Trace Plot (Trajectory)
+
+According the trace plot of trajectory below, the MCMC chain explores the space
+of potential values for the parameters quite well. It's not stuck in a same
+region for large number of iterations.
+
+
+```{r traceplot}
+# g1 <- traceplot(evap_fit_1$stanfit, pars = c('(Intercept)', 'max', 'avg', 'wind'), ncol = 1)
+g1 <- stan_trace(evap_fit_1)
+plot(g1)
+```
+
+# Reasoning About Coefficients
+
+Infering about the coefficients based on the posterior sample (the MCMC draws from the posterior distribution).
+
+```{r beta}
+# g1 <- plot(evap_fit_1) # plot posterior estimates and intervals
+
+rstan_ggtheme_options(panel.background = element_rect(fill = "white"), legend.position = "top")
+rstan_gg_options(fill = "skyblue", color = "skyblue4", pt_color = "red")
+
+g1 <- stan_plot(evap_fit_1, pars = c('(Intercept)'))
+plot(g1)
+
+g1 <- stan_plot(evap_fit_1, pars = c('max', 'avg', 'wind'))
+plot(g1)
+
+g1 <- quietgg(stan_hist(evap_fit_1))
+plot(g1)
+
+evap_coef <- extract(evap_fit_1$stanfit)$beta[,1,]
+```
+
+<!--
+* Number of proposed jumps? (DBA, p159) Do we need to increase the step? 
+Optimize on the maximum of effective size of the chain and the number of steps to converge.
+* other plots as shown in DBA3, p.180
+
+"...Here is a recapitulation regarding accuracy and stability of MCMC results. Visual
+inspection of the trace plots and density plots, and the Gelman-Rubin statistic, can
+suggest whether the burn-in period has been suitably passed. Second, those indicators
+can also suggest whether or not the chains are well mixed and representative of
+the posterior. Remember, the diagnostics logically can only probabilistically indicate
+violations of representativeness and cannot guarantee representativeness. Next, the
+measures of ESS and MCSE suggest how stable and accurate the chain is. As a heuristic,
+if you want reasonable stability in the estimates of the limits of the 95% HDI, an
+ESS of (at least) 10,000 is desirable. If you want a particular accuracy in the estimate
+of the posterior mean, consult the MCSE, which is interpreted on the scale of the
+parameter..." // DBA3
+-->
+
+<!--
+Can the Bayesian way provide us with information on issues with the linear model
+like existence of redundant variables, the multicollinearity issue etc.
+
+Improve the model if required and do another run of MCMC to infer the posterior
+of the coefficients.
+-->
+
+# Prediction
+
+Now, as there is the model built with Bayesian methods meaning the model can
+provide answers in terms of probabilities as beliefs, let's predict 
+the evaporation ratio for a cold period and a hot period.
+
+```{r Prediction}
+# samples from posterior predictive
+evap_pred <- posterior_predict(evap_fit_1, newdata = evap_data_f) 
+
+x <- melt(data.frame(Actual = y, t(evap_pred)), id.vars = "Actual")
+
+g1 <- ggplot(x, aes(x = Actual, y = value, group = Actual)) + 
+  xlab("predicted") + ylab("observed") +
+  geom_violin() + xlim(-30, 90) + ylim(-30, 90) +
+  geom_abline(aes(slope = 1, intercept = 0), lty = "dashed", colour = "red")
+plot(g1)
+```
+
+
+# Conclusion
+
+We have found the linear model coefficients with two methods
+* the classical linear regression,
+* the MCMC sampling method from the Bayesian framework.
+
+The obtained values are very simular, the MCMC method (in the STAN implementation)
+has been able to find means of the coefficients even with the default assumption
+of the priors. The samples generated provide us with additional information
+about the coefficients i.e. we may approximate their distribuiton and reason
+about their probable values in the concept of the probability as 'belief'.
+
+# Ideas for improvements
+
+1. Draw the model in the "plate" notation or the hierarchical diagram.
+2. Check if the MCMCM performance will be better if the data are standardized
+   (check the example with bears).
+3. Use k-fold cross-validation to get probably better model from the prediction 
+   point of view.
+4. Try the pp_check function for graphical posterior predictive checks.
+5. Try the loo function in the loo package for model comparison.
+6. Try the launch_shinystan function in the shinystan package in order to 
+visualize the posterior distribution using the ShinyStan graphical user interface.
+7. Display the mean of predicted output on the "Actual vs. Predicted" plot.
+
+# References
+
+1. The course lectures and examples.
+2. Doing Bayesian Data Analysis : a Tutorial with R, JAGS, and Stan / John K. Kruschke.
+3. rstanarm documentation: https://www.rdocumentation.org/packages/rstanarm
+4. Accessing the contents of a stanfit object: https://cran.r-project.org/web/packages/rstan/vignettes/stanfit-objects.html
+
+# Appendix A Technical Details of Report
+
+This version of the report was built with:
+
+```{r}
+devtools::session_info()
+```
+

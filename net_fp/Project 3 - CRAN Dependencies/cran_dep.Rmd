@@ -1,0 +1,410 @@
+---
+title: "Networks in R - Project 3 - R Package Dependencies"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())                             # Remove all the objects we created so far.
+```
+
+# Project Description
+
+The network chosen for the project is the set of R packages built from two subsets
+
+* the base packages
+* the packages available on CRAN
+
+with dependencies between them. The network data was gathered by using the
+01_build_net.R script.
+
+There are four types of links between packages
+
+* "Depends". Directive attempts to ensure that a function from another package 
+is available by attaching the other package to the main search path 
+(i.e. the list of environments returned by search()). Which sometimes can lead 
+to collisions with names. It's not recommended type of dependency).
+* "Imports". Packages listed here must be present for your package to work. 
+In fact, any time your package is installed, those packages will, if not already 
+present, be installed on your computer (devtools::load_all() also checks that
+the packages are installed). However, it does not mean that it will be attached 
+along with your package. The best practice is to explicitly refer to external 
+functions using the syntax package::function().
+* "Suggests". Your package can use these packages, but doesn’t require them. 
+You might use suggested packages for example datasets, to run tests, build 
+vignettes, or maybe there’s only one function that needs the package. Packages 
+listed in Suggests are not automatically installed along with your package.
+* "Enhances". Packages listed here are “enhanced” by your package. Typically, 
+this means you provide methods for classes defined in another package 
+(a sort of reverse Suggests). But it’s hard to define what that means, 
+so I don’t recommend using Enhances.
+
+The "Suggests" and "Enhances" relations are out of scope for the project as they 
+don't impose hard dependency i.e. a package may work without them. Further,
+we consider only the "Depends" and "Imports" relations and consider them equal
+from our research's point of view.
+
+The motivation is to investigate into what are the most 'powerful' R packages in
+terms of their relations to the rest of packages.
+
+# Data Format
+
+The network data is saved in two formats:
+
+* the GML format in the r_packages.gml file,
+* the Pajek format in the r_packages.net file.
+
+```{r, echo=F, message=FALSE}
+library(igraph)
+net <- read_graph("r_packages.gml", format = "gml")
+```
+
+# Basic Network Characteristics 
+
+The nodes represent web pages, each page describes some Wikipedia social norm. 
+The links are the HTTP reference from one page to another.
+
+It's a directed graph by its nature, no weights assigned to the links.
+
+|Property               | Value |
+|:----------------------|:-----------------|
+| Vertices              | `r gorder(net)`                                      |
+| Edges                 | `r as.character(gsize(net))`                         |
+| Directed              | `r ifelse(is.directed(net), "Yes", "No")`            |
+| Weighted              | `r ifelse(is.weighted(net), "Yes", "No")`            |
+| Average degree        | `r round(2*gsize(net)/gorder(net), 1)`               |
+| Diameter              | `r diameter(net, directed = TRUE, weights = NULL)`   |
+| Acyclic               | `r ifelse(is.dag(net), "Yes", "No")`                 |
+| Edge density          | `r as.character(edge_density(net))`                  |
+| Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
+| Transitivity (global) | `r as.character(transitivity(net))`                  |
+
+Interesting to note there are isolated packages i.e. without any relations to any
+other packages, their percentage is
+
+```{r, echo=F}
+round(100*mean(degree(net, mode = "all") == 0), 1)
+```
+
+## Top Nodes
+
+The most popular packages in terms of others depending on them, the 
+
+The first 50 nodes with the largest number of in-degree. The high number of 
+total degree for a node is expectedly provided by incoming dependecies. 
+```{r, echo=F}
+
+net_deg_all <- degree(net, mode = "all")
+net_deg_in  <- degree(net, mode = "in")
+net_deg_out <- degree(net, mode = "out")
+
+print(sprintf("%-36s %-10s %10s %10s %16s", "Page Name", "Type", "In-degree", "Out-degree", "Total Degree"), quote = F)
+print("-----------------------------------------------------------------------------------------", quote = F)
+for (node_id in order(net_deg_all, decreasing = T)[1:50]) {
+  print(sprintf("%-36s %-10s %10d %10d %16d", 
+    V(net)$name[node_id],
+    V(net)$type[node_id],
+    net_deg_in [[node_id]],
+    net_deg_out[[node_id]],
+    net_deg_all[[node_id]]), 
+    quote = F)
+}
+```
+
+The most dependent packages (sorted in the descending order of out-degree)
+
+```{r, echo=F}
+
+print(sprintf("%-36s %-10s %10s %10s %16s", "Page Name", "Type", "In-degree", "Out-degree", "Total Degree"), quote = F)
+print("-----------------------------------------------------------------------------------------", quote = F)
+for (node_id in order(net_deg_out, decreasing = T)[1:10]) {
+  print(sprintf("%-36s %-10s %10d %10d %16d", 
+    V(net)$name[node_id],
+    V(net)$type[node_id],
+    net_deg_in [[node_id]],
+    net_deg_out[[node_id]],
+    net_deg_all[[node_id]]), 
+    quote = F)
+}
+```
+
+## Components
+
+The nodes along the first found path of the diameter distance.
+```{r}
+V(net)$name[get.diameter(net)]
+```
+
+# Degree
+
+The degree distribution (in-degree, out-degree, total)
+
+```{r}
+# Degree
+net_deg_in  <- degree(net, mode = "in")
+net_deg_out <- degree(net, mode = "out")
+net_deg_all <- degree(net, mode = "all")
+
+par(mfrow = c(1,3))
+hist(net_deg_in,  breaks = 20, freq = T, main = "", xlab = "Degree (In)")
+hist(net_deg_out, breaks = 20, freq = T, main = "", xlab = "Degree (Out)")
+hist(net_deg_all, breaks = 20, freq = T, main = "", xlab = "Degree (All)")
+```
+
+```{r, echo = F}
+net_deg_dist_all <- degree_distribution(net, cumulative=T, mode="all")
+net_deg_dist_in  <- degree_distribution(net, cumulative=T, mode="in")
+net_deg_dist_out <- degree_distribution(net, cumulative=T, mode="out")
+
+par(mfrow=c(3,1))
+
+plot(x = 0:max(degree(net, mode="all")), 
+     y = 1 - net_deg_dist_all, 
+     pch = 19, 
+     cex = 1.2, 
+     col = "orange", 
+     xlab = "Degree (All)", 
+     ylab = "Cumulative Frequency")
+
+plot(x = 0:max(degree(net, mode="in")), 
+     y = 1 - net_deg_dist_in, 
+     pch=19, 
+     cex=1.2, 
+     col  = "orange", 
+     xlab = "Degree (In)", 
+     ylab = "Cumulative Frequency")
+
+plot(x = 0:max(degree(net, mode="Out")), 
+     y = 1 - net_deg_dist_out, 
+     pch = 19, 
+     cex = 1.2, 
+     col = "orange", 
+     xlab = "Degree (Out)", 
+     ylab = "Cumulative Frequency")
+```
+
+<!--
+
+# Nodes
+
+The nodes, as previously said, are R packages. 
+
+
+# Our network without isolated nodes
+
+
+net2 <- delete.vertices(net, V(net)[degree(net) == 0])
+V(net2)$size <- degree(net2)
+
+# Our network without nodes with small number of degrees
+net2 <- delete.vertices(net, V(net)[degree(net) < 100])
+
+plot(net2, layout = layout_with_fr(net2), edge.arrow.size = .4, edge.curved = .1)
+
+-->
+
+<!--
+
+Let's create a heatmap of nodes with more than 200 in-degree links.
+
+```{r}
+netm <- get.adjacency(net, sparse = F) # , attr="weight", sparse=F)
+
+colnames(netm) <- V(net)$media
+rownames(netm) <- V(net)$media
+
+palf <- colorRampPalette(c("white", "dark orange")) 
+
+heatmap(netm[,10:1], Rowv = NA, Colv = NA, col = palf(10), 
+        scale="none", margins=c(10,10) )
+```
+-->
+
+# Betweenness
+
+```{r}
+net_bt = betweenness(net, v = V(net), directed = TRUE)
+hist(net_bt, breaks = 30, freq = T, main = "", xlab = "Betweenness")
+
+# net_eb <- cluster_edge_betweenness(net, directed = TRUE)
+# plot_dendrogram(net_eb)
+```
+
+# Eigen values
+
+Identify key nodes using eigenvector centrality
+
+```{r}
+net_ec <- eigen_centrality(net)
+which.max(net_ec$vector)
+```
+
+<!--
+# Cliques
+
+```{r}
+# Identify the largest cliques in the network
+net_lc <- largest_cliques(net)
+
+# Determine all maximal cliques in the network and assign to object 'clq'
+net_clq <- max_cliques(net)
+
+# Calculate the size of each maximal clique.
+table(unlist(lapply(net_clq, length)))
+
+par(mfrow=c(1,2)) # To plot two plots side-by-side
+
+sn1 <- as.undirected(subgraph(net, net_lc[[1]]))
+sn1 <- subgraph(net, net_lc[[2]])
+
+plot(sn1,
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.9,
+     vertex.size = 30,
+     edge.color = 'gray28',
+     main = "Largest Clique 1",
+     layout = layout.circle(sn1)
+)
+```
+-->
+
+# Subnetworks
+
+In trying to determine subnetworks with the we find there are hundrends of one 
+node networks (isolated nodes) and one large subnetwork of 10406 nodes. 
+
+That's shown on the histogram below where x is ln of the size 
+of each of those networks
+
+```{r, eval=T, echo=F}
+net_dec <- decompose.graph(net)
+net_sn_len <- c()
+for (i in 1:length(net_dec)) { 
+  net_sn_len <- c(net_sn_len, length(V(net_dec[[i]]))) 
+}
+hist(log(net_sn_len, 10), breaks = 5, xlab = "ln(<number of nodes>")
+```
+
+# "Do birds of a feather flock together?" (Communities)
+
+TBC...
+
+Determine communities using walktrap algorithm (igraph)
+
+```{r, eval=F, echo = F}
+net_cl <- walktrap.community(net, steps = 3)
+
+# Define ob
+topClusters <- table(net_cl$membership) %>% 
+  sort(decreasing = TRUE) %>% 
+  head(25)
+
+topClusters[1:10]
+
+plot(topClusters[1:10],  main="Cluster size (Top 10)", ylab="Number of members", type="b", lwd=2)
+```
+
+
+<!--
+-- Check it for comminuties detection: http://kateto.net/networks-r-igraph
+
+Community detection (betweenness), up to 10 communities
+
+```{r, eval=F}
+net_eb <- edge.betweenness.community(net)
+
+membership <- cut_at(net_eb, no = 10)
+plot(net,
+  vertex.color= rainbow(10, .8, .8, alpha=.8)[membership],
+  vertex.size=5, layout=layout,  vertex.label=NA,
+  edge.arrow.size=.2)
+```
+
+
+
+
+```{r, eval=F}
+betweenness(net)
+edge.betweenness(net)
+
+plot(net, layout=layout,
+  vertex.size = map(betweenness(net),c(1,15)),
+  edge.width = map(edge.betweenness(net), c(1,10)))
+```
+-->
+
+# Randomization Tests
+
+We generate 100 random graphs with the same node numbers and the edge density 
+as our network, then compare the average path length of those generated networks 
+with the average path length of our network on the frequency historgram.
+
+TBC...
+
+<!--
+```{r}
+gr <- vector('list', 10)
+
+for (i in 1:length(gr)){
+  gr[[i]] <- erdos.renyi.game(n = gorder(net), p.or.m = edge_density(net), type = "gnp") 
+}
+
+gr.apls <- unlist(lapply(gr, mean_distance, directed = FALSE))
+
+hist(gr.apls, breaks = 20)
+abline(v = mean_distance(net, directed=FALSE), col = "red", lty = 3, lwd=2)
+
+# Calculate the proportion of graphs with an average path length lower than our observed
+sum(gr.apls < mean_distance(net))/1000
+```
+-->
+
+# Visualization
+
+The full network visualization without clustering is not informative. It's all
+full of nodes and lines.
+
+A partial visualization was made in Gephi with manual configuration for nodes with more than
+50 other packages depeding on them. The visual size of nodes reflects the number 
+of in-degrees for that node. The color of node reflects which type ('base', 'CRAN') it belongs to.
+
+This kind of visualization helps to understand what the most referenced packages are,
+and what are links between themselves.
+
+image: ![](cran_dep_vis.png)
+
+The partial visualization also saved as cran_dep_vis.pdf.
+
+
+<!--
+
+```{r, eval=F, echo=F}
+pdf("wiki_norms.pdf")
+
+plot(net, layout = layout.auto, vertex.size = 2, edge.arrow.size=.2, vertex.label = NA)
+
+dev.off()
+```
+-->
+
+# Ideas to Improve Report
+
+1. Give graphs a more elegant look with ggplot2.
+2. Dendrogram? Will it work for such a large network?
+3. Try the hierarchical clustering.
+4. Color the network according the last change date of a package (on the year level).
+5. Add additional attribution for nodes like the last change date.
+9. Provide more contexual interpretaion of the network.
+
+# References
+
+1. The Comprehensive R Archive Network (CRAN): [link](https://cran.r-project.org)
+2. DataCamp course "Network Analysis in R": [link](https://campus.datacamp.com/courses/network-analysis-in-r)
+
+# Appendix A Technical Details of Report
+
+This version of the report was built with:
+
+```{r}
+devtools::session_info()
+```
