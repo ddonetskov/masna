@@ -1,0 +1,98 @@
+---
+title:  "Networks: Project 3"
+author: "Dmitry Donetskov"
+# date:   {today}
+
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    fig_width: 7
+    fig_height: 7
+    fig_caption: true
+        
+bibliography: project_3.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(igraph)
+library(RColorBrewer)
+```
+
+# Problem Statement
+
+Make a CUG test on a network of your choice.
+
+# Network
+
+The data is the network of American football games between Division IA colleges 
+during regular season Fall 2000, as compiled by M. Girvan and M. Newman 
+(@Girvan7821).
+
+```{r data_prep, echo=FALSE}
+net <- read_graph("data/football.gml", format = "gml")
+```
+
+## Basic Network Characteristics 
+
+The nodes represent web pages, each page describes some Wikipedia social norm. 
+The links are the HTTP reference from one page to another.
+
+It's a directed graph by its nature, no weights assigned to the links.
+
+|Property               | Value |
+|:----------------------|:-----------------|
+| Vertices              | `r gorder(net)`                                      |
+| Edges                 | `r as.character(gsize(net))`                         |
+| Directed              | `r ifelse(is.directed(net), "Yes", "No")`            |
+| Weighted              | `r ifelse(is.weighted(net), "Yes", "No")`            |
+| Average degree        | `r round(2*gsize(net)/gorder(net), 1)`               |
+| Diameter              | `r diameter(net, directed = TRUE, weights = NULL)`   |
+| Acyclic               | `r ifelse(is.dag(net), "Yes", "No")`                 |
+| Edge density          | `r as.character(edge_density(net))`                  |
+| Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
+| Transitivity (global) | `r as.character(transitivity(net))`                  |
+
+
+```{r net_viz, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
+plot(net, vertex.color="green", layout = coords_fr, vertex.label = V(net)$label, vertex.size = 2)
+```
+
+# Analysis
+
+```{r cug, echo=FALSE}
+library(statnet)
+
+# converting from the 'igraph' format to the 'network' one
+net2 <- network(as.matrix(as_adjacency_matrix(net, type="both", names=TRUE, sparse=FALSE)), 
+                matrix.type="adjacency", directed=FALSE)
+
+rSize  <- cug.test(net2, centralization, FUN.arg=list(FUN=betweenness), mode="graph", cmode="size")
+rEdges <- cug.test(net2, centralization, FUN.arg=list(FUN=betweenness), mode="graph", cmode="edges")
+rDyad  <- cug.test(net2, centralization, FUN.arg=list(FUN=betweenness), mode="graph", cmode="dyad.census")
+
+#names(rSize)
+#rSize
+
+# Aggregate results
+Betweenness <- c(rSize$obs.stat, rEdges$obs.stat, rDyad$obs.stat)
+PctGreater  <- c(rSize$pgteobs,  rEdges$pgteobs,  rDyad$pgteobs)
+PctLess     <- c(rSize$plteobs,  rEdges$plteobs,  rDyad$plteobs)
+report      <- cbind(Betweenness, PctGreater, PctLess)
+rownames(report) <- c("Size","Edges","Dyads")
+
+report
+
+par(mfrow=c(1,3))
+plot(rSize,  main="Betweenness \nConditioned on Size" )
+plot(rEdges, main="Betweenness \nConditioned on Edges" )
+plot(rDyad,  main="Betweenness \nConditioned on Dyads" )
+par(mfrow=c(1,1))
+```
+
+# References
+
