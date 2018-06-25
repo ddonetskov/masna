@@ -1,0 +1,148 @@
+---
+title:  "Networks: Project 2"
+author: "Dmitry Donetskov"
+# date:   {today}
+
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    fig_width: 7
+    fig_height: 7
+    fig_caption: true
+        
+bibliography: project_2.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(igraph)
+library(orca)
+
+library(RColorBrewer)
+```
+
+# Problem Statement
+
+Select an undirected labeled network with at least 50 nodes and average degree
+at least 4. Determine the graphlet spectra for its nodes. On their basis
+construct a dissimilarity between nodes and use it to cluster the nodes.
+
+# Network
+
+The data is the network of American football games between Division IA colleges 
+during regular season Fall 2000, as compiled by M. Girvan and M. Newman 
+(@Girvan7821).
+
+```{r data_prep, echo=FALSE}
+net <- read_graph("data/football.gml", format = "gml")
+```
+
+## Basic Network Characteristics 
+
+The nodes represent web pages, each page describes some Wikipedia social norm. 
+The links are the HTTP reference from one page to another.
+
+It's a directed graph by its nature, no weights assigned to the links.
+
+|Property               | Value |
+|:----------------------|:-----------------|
+| Vertices              | `r gorder(net)`                                      |
+| Edges                 | `r as.character(gsize(net))`                         |
+| Directed              | `r ifelse(is.directed(net), "Yes", "No")`            |
+| Weighted              | `r ifelse(is.weighted(net), "Yes", "No")`            |
+| Average degree        | `r round(2*gsize(net)/gorder(net), 1)`               |
+| Diameter              | `r diameter(net, directed = TRUE, weights = NULL)`   |
+| Acyclic               | `r ifelse(is.dag(net), "Yes", "No")`                 |
+| Edge density          | `r as.character(edge_density(net))`                  |
+| Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
+| Transitivity (global) | `r as.character(transitivity(net))`                  |
+
+
+```{r net_viz, echo=FALSE}
+plot(net, vertex.color="green", layout=layout_with_kk, vertex.label = NA, vertex.size = 5)
+```
+# Analysis
+
+## Getting Orbits
+
+```{r data_prep2, echo=TRUE}
+# convert to the 'edgelist' format required by orca
+net_edgelist <- as.data.frame(as_edgelist(net))
+net_edgelist <- transform(net_edgelist, V1 = as.integer(net_edgelist$V1), V2 = as.integer(net_edgelist$V2))
+```
+
+
+```{r calc, echo=TRUE}
+# convert to the 'edgelist' format required by orca
+net_orbits        <- count4(net_edgelist)
+net_orbits_scaled <- scale(net_orbits)     # scale the data
+
+print('Found orbits for the nodes are')
+print(net_orbits)
+# 
+```
+
+## H-Clustering
+
+```{r hclust, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+heatmap(net_orbits_scaled, cexRow = 0.3) 
+
+# Ward Hierarchical Clustering
+distances  <- dist(net_orbits_scaled, method = "euclidean") # distance matrix
+hclust_fit <- hclust(distances, method="ward.D") 
+plot(hclust_fit, cex = 0.3) # display dendogram
+k = 10
+# draw dendogram with red borders around the k clusters 
+rect.hclust(hclust_fit, k = k, border="red")
+
+clusters2 <- cutree(hclust_fit, k = k) # cut tree into k clusters
+```
+
+## k-Means Clustering
+
+```{r kmeans, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+k = 10 
+
+kmeans_fit <- kmeans(net_orbits_scaled, k)
+
+# Cluster Plot against 1st 2 principal components
+library(cluster) 
+clusplot(net_orbits_scaled, kmeans_fit$cluster, color = TRUE, shade = TRUE, labels = 2, lines=0)
+
+# Centroid Plot against 1st 2 discriminant functions
+library(fpc)
+plotcluster(net_orbits_scaled, kmeans_fit$cluster)
+```
+
+## Visualization (Clustering Coloured)
+
+```{r net_viz_hclust, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+# color the nodes
+pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(clusters2)))
+node_colors <- pal[clusters2]
+V(net)$color <- node_colors
+
+coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
+# igraph plot options
+igraph.options(vertex.size=8, edge.width=0.75) 
+# plot network
+plot(net, layout=coords_fr, vertex.color=V(net)$color)
+```
+```{r net_viz_kmeans, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+# color the nodes
+pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(kmeans_fit$cluster)))
+node_colors <- pal[kmeans_fit$cluster]
+V(net)$color <- node_colors
+
+# coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
+# igraph plot options
+igraph.options(vertex.size=8, edge.width=0.75) 
+# plot network
+plot(net, layout=coords_fr, vertex.color=V(net)$color)
+```
+
+# References
+
