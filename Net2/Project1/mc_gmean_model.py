@@ -46,6 +46,9 @@ class text_file_tokenizer:
 
         tokens = nltk.tokenize.word_tokenize(text, language = self.lang)
 
+	# we may wish to use a specialized tokenizer for Latin
+	# http://cltk.org/blog/2015/08/02/tokenizing-latin-text.html
+
         # filter out
         if mask_fn != None:
 
