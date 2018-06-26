@@ -1,22 +1,29 @@
 ---
-title:  "Networks: Project 3"
+title: 'Networks: Project 3'
 author: "Dmitry Donetskov"
-# date:   {today}
-
-output: 
+output:
   pdf_document:
-    toc: true
-    number_sections: true
-    toc_depth: 2
-    fig_width: 7
+    fig_caption: yes
     fig_height: 7
-    fig_caption: true
-        
+    fig_width: 7
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
 bibliography: project_3.bib
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+# chunk option dev="svg" produces very large vector graphics files
+knitr::opts_chunk$set(dev="pdf")
+
+# chunk option dev="png" is the default raster graphics format for HTML output
+#knitr::opts_chunk$set(dev="png")
 
 library(igraph)
 library(RColorBrewer)
@@ -30,18 +37,29 @@ Make a CUG test on a network of your choice.
 
 The data is the network of American football games between Division IA colleges 
 during regular season Fall 2000, as compiled by M. Girvan and M. Newman 
-(@Girvan7821).
+(@Girvan7821). To quote
+
+>The network we look at is a representation of the schedule of Division I games
+for the 2000 season: vertices in the graph represent teams (identified by their
+college names) and edges represent regular-season games between the two teams
+they connect. What makes this network interesting is that it incorporates a
+known community structure. The teams are divided into conferences containing
+around 8–12 teams each. Games are more frequent between members of the same
+conference than between members of different conferences, with teams playing an
+average of about seven intraconference games and four interconference games in
+the 2000 season.
+
+
+By description of the network we can assume there are components in it which 
+have more connections within and between them.
+
+Let's check with CUG 
 
 ```{r data_prep, echo=FALSE}
 net <- read_graph("data/football.gml", format = "gml")
 ```
 
 ## Basic Network Characteristics 
-
-The nodes represent web pages, each page describes some Wikipedia social norm. 
-The links are the HTTP reference from one page to another.
-
-It's a directed graph by its nature, no weights assigned to the links.
 
 |Property               | Value |
 |:----------------------|:-----------------|
@@ -56,15 +74,23 @@ It's a directed graph by its nature, no weights assigned to the links.
 | Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
 | Transitivity (global) | `r as.character(transitivity(net))`                  |
 
+The network coloured according to which division each club belongs to.
 
 ```{r net_viz, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(V(net)$value)))
+node_colors  <- pal[V(net)$value + 1]
+V(net)$color <- node_colors
+
 coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
-plot(net, vertex.color="green", layout = coords_fr, vertex.label = V(net)$label, vertex.size = 2)
+
+# igraph plot options
+igraph.options(vertex.size=8, edge.width=0.75) 
+plot(net, layout=coords_fr, vertex.size = 5, vertex.color=V(net)$color)
 ```
 
 # Analysis
 
-```{r cug, echo=FALSE}
+```{r cug, echo=TRUE, warning=FALSE, message=FALSE}
 library(statnet)
 
 # converting from the 'igraph' format to the 'network' one
@@ -84,7 +110,9 @@ PctGreater  <- c(rSize$pgteobs,  rEdges$pgteobs,  rDyad$pgteobs)
 PctLess     <- c(rSize$plteobs,  rEdges$plteobs,  rDyad$plteobs)
 report      <- cbind(Betweenness, PctGreater, PctLess)
 rownames(report) <- c("Size","Edges","Dyads")
+```
 
+```{r cug2, echo=TRUE}
 report
 
 par(mfrow=c(1,3))
@@ -93,6 +121,15 @@ plot(rEdges, main="Betweenness \nConditioned on Edges" )
 plot(rDyad,  main="Betweenness \nConditioned on Dyads" )
 par(mfrow=c(1,1))
 ```
+
+# Findings
+
+The CUG analysis shows that the network has unusually high level of
+centralization for the given number of nodes and that relfects the nature of
+network (that connections between teams within divisions are more likely than
+between teams from different divisions).
+But this level of centralization is not uncommon (and rather a bit low) for the
+given number of edges and the given distribution of dyads.
 
 # References
 
