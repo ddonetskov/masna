@@ -19,6 +19,19 @@ bibliography: project_2.bib
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+# chunk option dev="svg" produces very large vector graphics files
+# knitr::opts_chunk$set(dev="pdf")
+
+# chunk option dev="png" is the default raster graphics format for HTML output
+#knitr::opts_chunk$set(dev="png")
+
+# more optimized svg, ligher in size, https://cran.r-project.org/web/packages/svglite/index.html
+#library(svglite)
+#knitr::opts_chunk$set(
+#  dev = "svglite",
+#  fig.ext = ".svg"
+#)
+
 library(igraph)
 library(orca)
 
@@ -47,8 +60,7 @@ conference than between members of different conferences, with teams playing an
 average of about seven intraconference games and four interconference games in
 the 2000 season.
 
-Let's check if the clustering based on the graphlets can reveal the true
-structure of the network.
+Let's check if the clustering based on the graphlets add more information.
 
 
 ```{r data_prep, echo=FALSE}
@@ -70,13 +82,18 @@ net <- read_graph("data/football.gml", format = "gml")
 | Average Path Length   | `r as.character(mean_distance(net, directed = TRUE))`|
 | Transitivity (global) | `r as.character(transitivity(net))`                  |
 
+The network coloured according to divisions each club belongs to.
 
-```{r net_viz, echo = TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
+```{r net_viz, echo = TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(V(net)$value)))
+node_colors  <- pal[V(net)$value + 1]
+V(net)$color <- node_colors
+
 coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
 
 # igraph plot options
 igraph.options(vertex.size=8, edge.width=0.75) 
-plot(net, vertex.color="green", layout=coords_fr, vertex.size = 5)
+plot(net, layout=coords_fr, vertex.size = 5, vertex.color=V(net)$color)
 ```
 # Analysis
 
@@ -105,10 +122,10 @@ print(net_orbits)
 ## H-Clustering
 
 I use the euclidian distance for hierarchical clustering and made the cut to
-form ten partitions.
+form ten (10) partitions.
 
-```{r hclust, echo=TRUE, dev='svg', fig.height = 7, fig.width = 7, fig.align = "center"}
-heatmap(net_orbits_scaled, cexRow = 0.3) 
+```{r hclust, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+# heatmap(net_orbits_scaled, cexRow = 0.3) 
 
 # Ward Hierarchical Clustering
 distances  <- dist(net_orbits_scaled, method = "euclidean") # distance matrix
@@ -126,25 +143,25 @@ clusters2 <- cutree(hclust_fit, k = k) # cut tree into k clusters
 The same number of centers (10) was used for k-Means clustering to check later
 if results of two different clustering methods will match.
 
-```{r kmeans, echo=TRUE, dev='svg', fig.height = 7, fig.width = 7, fig.align = "center"}
-k = 10 
+```{r kmeans, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+k = 10
 
 kmeans_fit <- kmeans(net_orbits_scaled, k)
 
 # Cluster Plot against 1st 2 principal components
 library(cluster) 
-clusplot(net_orbits_scaled, kmeans_fit$cluster, color = TRUE, shade = TRUE, labels = 2, lines=0)
+clusplot(net_orbits_scaled, kmeans_fit$cluster, color = TRUE, shade = TRUE, labels = FALSE, lines=0)
 
 # Centroid Plot against 1st 2 discriminant functions
-library(fpc)
-plotcluster(net_orbits_scaled, kmeans_fit$cluster)
+#library(fpc)
+#plotcluster(net_orbits_scaled, kmeans_fit$cluster)
 ```
 
 ## Visualization (Hierarchical  Clustering)
 
 The network coloured based on the clusters defined during hierarchical clustering.
 
-```{r net_viz_hclust, echo=TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
+```{r net_viz_hclust, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
 # color the nodes
 pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(clusters2)))
 node_colors <- pal[clusters2]
@@ -152,7 +169,7 @@ V(net)$color <- node_colors
 
 #coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
 # igraph plot options
-igraph.options(vertex.size=8, edge.width=0.75) 
+igraph.options(vertex.size=5, edge.width=0.75) 
 # plot network
 plot(net, layout=coords_fr, vertex.color=V(net)$color)
 ```
@@ -160,7 +177,7 @@ plot(net, layout=coords_fr, vertex.color=V(net)$color)
 
 The network coloured based on the clusters defined during k-Means clustering.
 
-```{r net_viz_kmeans, echo=TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
+```{r net_viz_kmeans, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
 # color the nodes
 pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(kmeans_fit$cluster)))
 node_colors <- pal[kmeans_fit$cluster]
@@ -168,14 +185,15 @@ V(net)$color <- node_colors
 
 # coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
 # igraph plot options
-igraph.options(vertex.size=8, edge.width=0.75) 
+igraph.options(vertex.size=5, edge.width=0.75) 
 # plot network
 plot(net, layout=coords_fr, vertex.color=V(net)$color)
 ```
 
 # Findings
 
-TBC
+1. Clustering based on the graphlet spectra helps finding nodes with simular set of associations in a networks (in terms of the graphlets).
+2. Different clustering methods show simular results with some differences. To check that one can open the report twice in two different windows and compare the two visualizations of clustering.
 
 # References
 
