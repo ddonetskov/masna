@@ -1,17 +1,18 @@
 ---
-title:  "Networks: Project 2"
+title: 'Networks: Project 2'
 author: "Dmitry Donetskov"
-# date:   {today}
-
-output: 
+output:
   pdf_document:
-    toc: true
-    number_sections: true
-    toc_depth: 2
-    fig_width: 7
+    fig_caption: yes
     fig_height: 7
-    fig_caption: true
-        
+    fig_width: 7
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
 bibliography: project_2.bib
 ---
 
@@ -34,18 +35,27 @@ construct a dissimilarity between nodes and use it to cluster the nodes.
 
 The data is the network of American football games between Division IA colleges 
 during regular season Fall 2000, as compiled by M. Girvan and M. Newman 
-(@Girvan7821).
+(@Girvan7821). To quote
+
+>The network we look at is a representation of the schedule of Division I games
+for the 2000 season: vertices in the graph represent teams (identified by their
+college names) and edges represent regular-season games between the two teams
+they connect. What makes this network interesting is that it incorporates a
+known community structure. The teams are divided into conferences containing
+around 8–12 teams each. Games are more frequent between members of the same
+conference than between members of different conferences, with teams playing an
+average of about seven intraconference games and four interconference games in
+the 2000 season.
+
+Let's check if the clustering based on the graphlets can reveal the true
+structure of the network.
+
 
 ```{r data_prep, echo=FALSE}
 net <- read_graph("data/football.gml", format = "gml")
 ```
 
 ## Basic Network Characteristics 
-
-The nodes represent web pages, each page describes some Wikipedia social norm. 
-The links are the HTTP reference from one page to another.
-
-It's a directed graph by its nature, no weights assigned to the links.
 
 |Property               | Value |
 |:----------------------|:-----------------|
@@ -61,10 +71,16 @@ It's a directed graph by its nature, no weights assigned to the links.
 | Transitivity (global) | `r as.character(transitivity(net))`                  |
 
 
-```{r net_viz, echo=FALSE}
-plot(net, vertex.color="green", layout=layout_with_kk, vertex.label = NA, vertex.size = 5)
+```{r net_viz, echo = TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
+coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
+
+# igraph plot options
+igraph.options(vertex.size=8, edge.width=0.75) 
+plot(net, vertex.color="green", layout=coords_fr, vertex.size = 5)
 ```
 # Analysis
+
+The [orca](https://cran.r-project.org/web/packages/orca/orca.pdf) package is used to find associations of nodes with the 4-node orbits.
 
 ## Getting Orbits
 
@@ -74,6 +90,7 @@ net_edgelist <- as.data.frame(as_edgelist(net))
 net_edgelist <- transform(net_edgelist, V1 = as.integer(net_edgelist$V1), V2 = as.integer(net_edgelist$V2))
 ```
 
+Printing the graphlet spectra.
 
 ```{r calc, echo=TRUE}
 # convert to the 'edgelist' format required by orca
@@ -87,7 +104,10 @@ print(net_orbits)
 
 ## H-Clustering
 
-```{r hclust, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+I use the euclidian distance for hierarchical clustering and made the cut to
+form ten partitions.
+
+```{r hclust, echo=TRUE, dev='svg', fig.height = 7, fig.width = 7, fig.align = "center"}
 heatmap(net_orbits_scaled, cexRow = 0.3) 
 
 # Ward Hierarchical Clustering
@@ -103,7 +123,10 @@ clusters2 <- cutree(hclust_fit, k = k) # cut tree into k clusters
 
 ## k-Means Clustering
 
-```{r kmeans, echo=TRUE, fig.height = 7, fig.width = 7, fig.align = "center"}
+The same number of centers (10) was used for k-Means clustering to check later
+if results of two different clustering methods will match.
+
+```{r kmeans, echo=TRUE, dev='svg', fig.height = 7, fig.width = 7, fig.align = "center"}
 k = 10 
 
 kmeans_fit <- kmeans(net_orbits_scaled, k)
@@ -117,21 +140,27 @@ library(fpc)
 plotcluster(net_orbits_scaled, kmeans_fit$cluster)
 ```
 
-## Visualization (Clustering Coloured)
+## Visualization (Hierarchical  Clustering)
 
-```{r net_viz_hclust, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+The network coloured based on the clusters defined during hierarchical clustering.
+
+```{r net_viz_hclust, echo=TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
 # color the nodes
 pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(clusters2)))
 node_colors <- pal[clusters2]
 V(net)$color <- node_colors
 
-coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
+#coords_fr = layout.fruchterman.reingold(net, weights=E(net)$weight)
 # igraph plot options
 igraph.options(vertex.size=8, edge.width=0.75) 
 # plot network
 plot(net, layout=coords_fr, vertex.color=V(net)$color)
 ```
-```{r net_viz_kmeans, echo=TRUE, fig.height = 10, fig.width = 10, fig.align = "center"}
+## Visualization (k-Means)
+
+The network coloured based on the clusters defined during k-Means clustering.
+
+```{r net_viz_kmeans, echo=TRUE, dev='svg', fig.height = 10, fig.width = 10, fig.align = "center"}
 # color the nodes
 pal = colorRampPalette(brewer.pal(11,"Spectral"))(length(unique(kmeans_fit$cluster)))
 node_colors <- pal[kmeans_fit$cluster]
@@ -143,6 +172,10 @@ igraph.options(vertex.size=8, edge.width=0.75)
 # plot network
 plot(net, layout=coords_fr, vertex.color=V(net)$color)
 ```
+
+# Findings
+
+TBC
 
 # References
 
