@@ -1,0 +1,1669 @@
+---
+title: 'Networks: Project 2'
+author: "Dmitry Donetskov"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# chunk option dev="svg" produces very large vector graphics files
+# knitr::opts_chunk$set(dev="pdf")
+
+# chunk option dev="png" is the default raster graphics format for HTML output
+#knitr::opts_chunk$set(dev="png")
+
+# more optimized svg, ligher in size, https://cran.r-project.org/web/packages/svglite/index.html
+#library(svglite)
+#knitr::opts_chunk$set(
+#  dev = "svglite",
+#  fig.ext = ".svg"
+#)
+```
+
+# Univariate EDA
+
+```{r uni_eda, echo=TRUE, error=TRUE, fig.align = "center"}
+##########################################################################
+### MASNA Contemporary Data Analysis
+###########################################################################
+### Special topic: Spatial Data Analysis
+##########################################################################
+#
+# We start with univariate EDA - nothing you don't know already
+#
+library(classInt)
+library(car)
+library(graphics)
+#
+# To learn more about car:  >help(package=car)
+# Same for the other packages.
+#
+# ***************************************
+#
+# READ IN THE DATA
+# I am augmenting the work of Vlado and other courses you've had, 
+# because I've found some blank spots in topics we should have covered.
+# Those of you who know all of this, bear with me.
+#
+# Read and examine the data as a text file.  This file was created
+# by opening in MSExcel the .dbf file that is part of the shapefile.  Some
+# editing was done, and then the file was saved as a .txt file.
+# We now read the .txt file into a data.frame object:
+#
+socotxt <- read.table('data/south00.txt', header=T)
+socotxt[c(1:10),c(1:8)]
+names(socotxt)
+summary(socotxt)
+attach(socotxt)
+length(PPOV)
+#
+# File seems to have been read in just fine.  Maybe good to check:
+#
+plot(PPOV, LO_POV)
+#
+# Check PPOV for "correctness" as a dependent variable
+#
+hist(PPOV, border=2)     # It looks slightly right skewed
+#
+palette()
+#
+# These aren't our only color choices in R!
+#
+colors()
+#
+hist(PPOV, col="peachpuff2")
+#
+# Generally, for a variable with a positive (right) skew, we would look to
+# a log transform, logodds transformation, or a square root transform to
+# make the variable more "normal"; more symmetric.
+#
+hist(log(PPOV), col="tomato4")   # It's now seriously left skewed
+hist(logit(PPOV), col="lightblue3") # Slight left skew
+hist(sqrt(PPOV), col="peachpuff3")  # Maybe not so bad
+#
+# But we probably should request more bins
+#
+# A common rule of thumb for small data sets is that the number of
+# bins for a variable should be no more that about 2*sqrt(n)
+# When in doubt, follow the rules that Panov gave you. :)
+#
+2*sqrt(length(PPOV))
+#
+hist(PPOV, nclass=74)
+hist(log(PPOV), nclass=74)   # Badly left skewed
+hist(logit(PPOV), nclass=74) # Slight left skew
+hist(sqrt(PPOV), nclass=74)  # Still looks pretty good
+#
+# Note: You don't always get exactly the number of bins requested by the
+# nclass argument.  R makes some internal decisions regarding cutpoints.
+#
+# Another convention (Freedman & Diaconis 1981; also Fox 2002:87) sets
+# the recommended bins to {[(max - min)/n^3]/[2*(Q3 - Q1)]}, rounded up to
+# the next integer.  This is the n.bins() function in the CAR library.
+#
+
+#quantile(sqrt(PPOV), c(.25, .75)) 
+#((max(sqrt(PPOV)) - min(sqrt(PPOV)))/length(PPOV)^3) / 2*(quantile(sqrt(PPOV), c(.75)) - quantile(sqrt(PPOV), c(.25)))
+#n.bins(sqrt(PPOV))
+#nclass=n.bins(sqrt(PPOV)),
+h = hist(sqrt(PPOV), breaks = 'FD', col=7)
+nclass = length(h$breaks)
+box()
+
+#
+# You also can set the endpoints of each bin in a histogram using the
+# breaks argument; the bins need not be of equal width, although histograms
+# with unequal width bins are difficult to interpret.  Here we use this
+# feature and overlay on the histogram a normal density curve with the
+# same mean & sd as the variable plotted in the histogram:
+#
+### HISTOGRAM OF SQRT(PPOV)
+#
+mean(sqrt(PPOV))
+sd(sqrt(PPOV))
+median(sqrt(PPOV))
+min(sqrt(PPOV))
+max(sqrt(PPOV))
+summary(sqrt(PPOV))  # Note: summary function does some serious rounding
+#
+hist(sqrt(PPOV), breaks=seq(0.10, 0.80, 0.01), col='lightskyblue1',
+	probability=T, ylab='Density',
+	main='Histogram of Transformed Child Poverty Rate (sqrt(PPOV))',
+	xlab='sqrt(PPOV)')
+box()
+x <- seq(0.10,0.80,0.01)
+y <- dnorm(x, mean=0.4640952, sd=0.09657176, log=FALSE)
+lines(x,y, lty='solid', col='red', lwd=2)
+leg.txt <- c("   sqrt(PPOV)", "Min. =          0.1687",
+	"Max.=          0.7716", "Median =    0.4620",
+	"Mean =       0.4641", "Std. dev. =  0.0966")
+legend (x=0.1, y=4.6, leg.txt)
+#
+### HISTOGRAM OF SQRT(PPOV)
+### NOTE: ALTERNATIVE CODING FOR NORMAL DENSITY CURVE
+#
+me <- mean(sqrt(PPOV))
+sd <- sd(sqrt(PPOV))
+hist(sqrt(PPOV), breaks=seq(0.10, 0.80, 0.01), col='papayawhip',
+	probability=T,
+	ylab='Density', main='Histogram of Square Root of PPOV',
+	xlab='sqrt(PPOV)')
+box()
+curve(dnorm(x, mean=me, sd=sd), from=0.1, to=0.8, add=T, col='red', lwd=2)
+leg.txt <- c("   sqrt(PPOV)", "Min. =          0.1687",
+	"Max.=          0.7716", "Median =    0.4620",
+	"Mean =       0.4641", "Std. dev. =  0.0966")
+legend (x=0.09, y=4.7, leg.txt)
+#
+### HISTOGRAM OF LOGODDS PPOV
+#
+minlogodds <- min(logit(PPOV))
+maxlogodds <- max(logit(PPOV))
+melogodds <- mean(logit(PPOV))
+sdlogodds <- sd(logit(PPOV))
+medlogodds <- median(logit(PPOV))
+minlogodds
+maxlogodds
+melogodds
+sdlogodds
+medlogodds
+#
+hist(logit(PPOV), breaks=seq(-4, 0.5, 0.1), col=8, probability=T,
+	ylab='Density', main='Histogram of Logodds of PPOV',
+	xlab='logit(PPOV)')
+box()
+curve(dnorm(x, mean=melogodds, sd=sdlogodds), from=-3.8, to=0.5,
+	add=T, col='red', lwd=2)
+	leg.txt <- c("LOGODDS(PPOV)", "Min. =           -3.530",
+	"Max.=            0.386",
+	"Mean =        -1.320", "Median =     -1.304", "Std. dev. =    0.558")
+legend (x=-3.9, y=0.8, leg.txt)
+#
+# Despite similarity of mean and median, the logodds transformed PPOV
+# seems a bit heavy in the left tail.
+#
+### The sqrt transformation of PPOV seems pretty good.
+### Certainly it's  better than the log transformation.
+### But if we were't sure which we preferred (sqrt(PPOV) or logit(PPOV),
+### or if we want additional corroboration, there are additional ways
+### to explore this.  For example, we might check the QQ plots.
+#
+# Let's plot them with the 95% confidence envelope.  First, plot the
+# 95% confidence envelope for the qq plot.  Here it is for
+# the untransformed PPOV variable.
+#
+qqPlot(PPOV, distribution="norm",
+	ylab='Quantiles PPOV',
+	xlab='', main='Quantile Comparison Plot PPOV',
+	envelope=.95, las=0, pch=NA, lwd=2, col="red",
+	line="quartiles")
+#
+# Now add the qq plot in black.
+# We get an error message, but it's okay.  It works.
+#
+qqPlot(PPOV, distribution="norm", envelope=FALSE, 
+	pch=1, cex=1, col="black", par(new=TRUE))
+#
+# This pretty much confirms that if we want a univariate distribution
+# involving PPOV we need to think about transformations.
+# Here it is for the square root transformation
+#
+qqPlot(sqrt(PPOV), distribution="norm",
+	ylab='Quantiles sqrt(PPOV)',
+	xlab='', main='Quantile Comparison Plot sqrt(PPOV)',
+	envelope=.95, las=0, pch=NA, lwd=2, col="red",
+	line="quartiles")
+qqPlot(sqrt(PPOV), distribution="norm", envelope=FALSE, 
+	pch=1, cex=1, col="black", par(new=TRUE))
+
+#
+# Perhaps a bit bumpy in the left tail, but not too bad.
+# Now let's compare the competitor:  logit(PPOV)
+#
+qqPlot(logit(PPOV), distribution="norm",
+	ylab='Quantiles logit(PPOV)',
+	xlab='', main='Quantile Comparison Plot logit(PPOV)',
+	envelope=.95, las=0, pch=NA, lwd=2, col="red",
+	line="quartiles")
+qqPlot(logit(PPOV), distribution="norm", envelope=FALSE,
+	pch=1, cex=1, col="black", par(new=TRUE))
+
+#
+###  The distribution of sqrt(PPOV) looks much better.  Let's go with it.
+#
+# We might have approached this transformation issue in another way: trial
+# and error.  Here we check for Normality and Symmetry of several
+# transformations of PPOV using the familiar Box-Cox family of
+# powers and roots (see Fox, CAR, pp. 106ff.)
+#
+# Here's the transformation exploration.  We observed that PPOV has
+# a distribution with a positive skew.  Positive skew is corrected by
+# moving the variable "down the ladder" of powers & roots.
+# 1 means no transformation
+# .5 is sqrt transformation
+# 0 is log transformation
+#
+# Square root transform looks about as good as we're going to get.
+#
+# Parallel boxplots confirm the better symmetry of sqrt(PPOV)
+#
+par(mfrow=c(1,4))
+boxplot(PPOV, ylab='PPOV')
+boxplot(log(PPOV), ylab='LOG PPOV')
+boxplot(sqrt(PPOV), ylab='SQRT PPOV')
+boxplot(logit(PPOV), ylab='LOGIT PPOV')
+par(mfrow=c(1,1))
+#
+# Another alternative is simply to plot the sorted data against an index;
+# the advantage of this is that we see the distribution and possible outliers.
+# Let's standardize the vars so we can plot both on a single graph.
+#
+sLOGITPPOV <- (logit(PPOV)-mean(logit(PPOV)))/sd(logit(PPOV))
+sSQRTPPOV <- (sqrt(PPOV)-mean(sqrt(PPOV)))/sd(sqrt(PPOV))
+summary(sLOGITPPOV)
+summary(sSQRTPPOV)
+plot(sort(sLOGITPPOV), pch="-", col="black")
+lines(sort(sSQRTPPOV), lwd=3, col="red")
+#
+# Of course we could have set the graphs side by side.  It seems less
+# satisfactory, somehow, but the negative skew of the logit(PPOV)
+# is evident once again:
+#
+par(mfrow=c(1,2))
+plot(sort(sLOGITPPOV), pch="-", col="black")
+plot(sort(sSQRTPPOV), pch="-", col="red")
+par(mfrow=c(1,1))
+#
+#### Let's go with sqrt(PPOV) as our dependent variable ####
+#
+# One final jazzed up histogram of our new dependent variable.  We're
+# combining the histogram, a kernel density smoother, the normal density,
+# and adding a so-called "rug plot" as well:
+#
+hist(sqrt(PPOV), nclass=74, probability=T, xlim=c(0.1, 0.81),
+	ylim=c(0, 4.9), ylab='Density', col="wheat")
+#
+# Add the kernel density non-parametric smoother:
+#
+lines(density(sqrt(PPOV)), lwd=2, col='blue')
+#
+# Add the rug:
+#
+points(sqrt(PPOV), rep(0, length(sqrt(PPOV))), pch="|")
+#
+# And now the normal density is added:
+#
+curve(dnorm(x, mean=me, sd=sd), from=0.1, to=0.81, add=T, col='red', lwd=3)
+#
+# Finally give it some class with a box outline and add the legend box:
+#
+box()
+leg.txt <- c("   sqrt(PPOV)", "Min. =          0.1687",
+	"Max.=          0.7716", "Median =     0.4620",
+	"Mean =        0.4641", "Std. dev. =   0.0966")
+legend (x=0.08, y=5.0, bty="n", cex=1.1, leg.txt)
+#
+#
+# Here's a bit of housecleaning which is very helpful when you wish to
+# end one R session but immediately continue on to another session.  It's
+# a way to remove all the detritis from the last session:
+#
+ls()
+rm(list=ls())
+ls()
+```
+
+# Bivariate EDA
+
+```{r bi_eda, echo=TRUE, error=TRUE, fig.align = "center"}
+#
+##########################################################################
+####
+#### BIVARIATE EDA & SPATIAL AUTOCORRELATION
+####
+##########################################################################
+#
+# Read in the necessary packages
+#
+library(classInt)
+library(MASS)
+library(car)
+library(graphics)
+library(lmtest)
+library(spdep)
+
+#
+# READ IN THE DATA
+#
+# If you removed all the data by executing the "ls" command above,
+# read the data again.  Plus pull in the class and the mode.
+#
+socotxt <- read.table('data/south00.txt', header=T)
+socotxt[c(1:10),c(1:8)]
+class(socotxt)  # It's a data.frame object
+mode(socotxt)   # It's a list
+
+############# COMMENCE CHECKS FOR LINEARITY AND FOR OUTLIERS
+###
+#
+#### BIVARIATE EDA usually begins with simple scatterplots
+#### We decided earlier that sqrt(PPOV) was a helpful transformation
+#### Let's look at some potential independent variables: PUNEM, PFHH & PHSLS
+#
+attach(socotxt)
+plot(PUNEM, sqrt(PPOV), xlim=c(-0.03,0.22), main="sqrt(PPOV) by PUNEM")
+names(socotxt)
+row.names(socotxt) <- socotxt$NAME
+which(PUNEM == 0)
+row.names(socotxt)[which(PUNEM == 0)]
+
+# Another way to do this is interactively.  This is a highly useful
+# R function provided in the car package (see Fox, 2002:25-26).  Just use
+# your cursor, click on a point in the scatterplot to identify it.  Continue
+# until you're ready to move on.  At this point, right click on your mouse
+# and choose "stop" option.  Useful hint:  when you're ready to identify a
+# point, place your cursor where you would like the identifying text to
+# appear (e.g., bottom, top, left, etc.)
+#
+
+# commented out to render it into HTML
+# identify(PUNEM, sqrt(PPOV), row.names(socotxt))
+
+# Checks for linearity:
+#
+plot(PUNEM, sqrt(PPOV), main="sqrt(PPOV) by PUNEM")
+abline(lm(sqrt(PPOV) ~ PUNEM), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ PUNEM), col=4)
+#
+# What do we see?
+# In the hypothesized direction; as unemployment goes up PPOV goes up.
+# Nonlinearity?  Probably.  (The lowess function -- for "locally weighted
+# regression" is very useful for this.)  What do we do in this instance?
+# There are some zeros, so let's avoid a log transformation for now.
+# Let's see what a square root transformation buys us
+#
+plot(sqrt(PUNEM), sqrt(PPOV))
+#
+# Put 'em next to one another for comparison
+#
+par(mfrow=c(1,2))
+plot(PUNEM, sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ PUNEM), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ PUNEM), col=4)
+plot(sqrt(PUNEM), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ sqrt(PUNEM)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ sqrt(PUNEM)), col=4)
+par(mfrow=c(1,1))
+#
+# Probably better to transform.  But it really highlights those darn
+# outliers!  Let's drop them for now and try both a square root and
+# log transform.  The set up looks something like this:
+#
+which(PUNEM == 0)
+row.names(socotxt)[c(1114,1130)]
+socoexcl <- socotxt[-c(1114,1130),]
+detach(socotxt)
+attach(socoexcl)
+length(PPOV)       # 1385 looks right
+which(PUNEM == 0)  # also looks right
+#
+# Now let's go head-to-head between the sqrt & log transformations
+#
+# First the square root transformation of PUNEM:
+#
+par(mfrow=c(1,2))
+plot(sqrt(PUNEM), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ sqrt(PUNEM)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ sqrt(PUNEM)), col=4)
+#
+# And now the log transformation:
+#
+plot(log(PUNEM), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ log(PUNEM)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ log(PUNEM)), col=4)
+par(mfrow=c(1,1))
+#
+# Just looking at them, I'm inclined to prefer the sqrt transformation,
+# but it's a tough call.  Let's check the R-square term in a simple
+# linear regression set up:
+#
+regsqrt <- lm(sqrt(PPOV) ~ sqrt(PUNEM))
+reglog <- lm(sqrt(PPOV) ~ log(PUNEM))
+summary(regsqrt)
+summary(reglog)
+
+#
+# sqrt appears to win in a photo finish?  Are the estimated parameter
+# t-values relevant?  Let's go with the square root transformation, but
+# let's also stay with the data set excluding King and Loving counties.
+# Here's where R makes life considerably easier than, let's say, SAS. :) or GeoDa.
+#
+##### Now we should do the same sort of test with a couple other potential
+##### independent variables.  I did this for variables PFHH & PHSLS.  The
+##### details for what I did are shown below.
+##### But you should try this on your own to see if you agree.
+#
+##### When the dust settled, my choice for independent variables are:
+##### sqrt(PUNEM), sqrt(PFHH) and log(PHSPLUS)
+##### Note that I have reversed the scaling of the PHSLS
+#
+# A SCATTERPLOT MATRIX using the pairs function is also a useful device:
+#
+PChPov <- sqrt(PPOV)
+PUnemp <- sqrt(PUNEM)
+PFemHH <- sqrt(PFHH)
+PHiEd <- log(1-PHSLS)
+pairs(cbind(PChPov, PUnemp, PFemHH, PHiEd),
+      panel=function(x,y){
+        points(x,y)
+        abline(lm(y~x), lty=2, lwd=2, col=2)
+        lines(lowess(x,y), lwd=2, col=4)
+      },
+      diag.panel=function(x){
+        par(new=T)
+        hist(x, main="", axes=F, col=7, nclass=20)
+      }
+)
+```
+
+# Spatial Autocorrelation
+
+```{r spa_autocorr, echo=TRUE, error=TRUE, fig.align = "center"}
+#
+#
+##########################################################################
+#####
+##### NOW ONTO EXAMINATION OF SPATIAL AUTOCORRELATION IN R ###############
+#####
+##########################################################################
+###
+### GETTING YOUR WEIGHTS MATRIX INTO R
+###
+#
+# After first creating a weights matrix in GeoDa (or some other spatial analysis soft)
+# we can read it into R as an nb (neighbor list) object.  We then must convert the nb object
+# to a listw (weights list) object.  Here it is for a first order
+# queen GAL file
+#
+socogal <- read.gal("data/socoQueen1.GAL", override.id=TRUE)
+socoQ1.gal <- nb2listw(socogal)
+#
+# Get characteristics of socoQ1.gal:
+#
+socoQ1.gal
+summary(socoQ1.gal)  # A little more information here
+#
+# But we're cruzin' for a brusin' here.  A weights matrix produced in GeoDa
+# is based on data set with 1,387 observations.  Recall, however, that we
+# removed Loving and King counties, so if we try to generate a Moran I for
+# one of our variables in the socoexcl data.frame object, we'll get an error.
+#
+###
+### TEST FOR GLOBAL SPATIAL AUTOCORRELATION
+###
+#
+# Here we check for autocorrelation in the SQRT(PPOV)variable
+# in the socotxt object using the 1st order queen weight matrix and the
+# function moran.test
+#
+sqrtPPOV <- sqrt(PPOV)
+#moran.test(sqrtPPOV, socoQ1.gal)  # Oops.  There's our error
+#
+length(PPOV)
+detach(socoexcl)
+attach(socotxt)
+length(PPOV)
+#
+# So, try it now...
+#
+sqrtPPOV <- sqrt(PPOV)
+moran.test(sqrtPPOV, socoQ1.gal)
+#
+# The default variance for the Moran statistic using the moran.test function
+# is based on the exact variance calculation (Cliff & Ord, 1981) under the
+# randomization assumption (the non-free sampling assumption).  The
+# function permits the alternative (free sampling) calculation by selecting
+# FALSE in the "randomisation" argument.  The difference will appear only
+# in the variance of the Moran statistic.  Let's try it:
+#
+moran.test(sqrtPPOV, socoQ1.gal, randomisation=FALSE)
+#
+# There are other Moran tests in R.  Here's a test under a
+# permutation simulation -- exactly the kind of test available to us in GeoDa.
+#
+nsim <- 999
+set.seed(5240)
+mcsim1 <- moran.mc(sqrtPPOV, socoQ1.gal, nsim=nsim)
+#
+# Note, it's calculated but not printed.  Now ask for the results:
+#
+mcsim1
+# 
+mean(mcsim1$res[1:nsim])  # somewhat different from the exact expectation
+var(mcsim1$res[1:nsim])   # somewhat different from the exact variance
+sd(mcsim1$res[1:nsim])
+summary(mcsim1$res[1:nsim])
+hist(mcsim1$res, nclass=50)
+#
+# Note that there are 999 simulation results.  At the end of the results
+# the actual observed Moran coefficient is given.  We see this here:
+#
+sort(mcsim1$res)
+plot(sort(mcsim1$res), pch="+")
+#
+###
+##### MORAN SCATTERPLOT
+###
+#
+# The Moran Scatterplot gets messed up when there are outliers like zero
+# values.  We can eliminate those observations, as we did above (but that
+# doesn't work if we want to use the GeoDa-generated weights matrix.  Another
+# option would be to simpley recode those zero observations to something
+# else (e.g., by re-setting zero values equal to the mean of the univariate
+# distribution (not a great solution and not recommended for serious work).
+#
+# To get a Moran Scatterplot  in R requires some effort.
+# We first must standardize our variable.  So...
+#
+mean(sqrtPPOV)
+sd(sqrtPPOV)
+SsqrtPPOV=(sqrtPPOV-mean(sqrtPPOV))/sd(sqrtPPOV)
+hist(SsqrtPPOV, nclass=50)
+#
+# We then get the R version of the Moran scatterplot with the
+# following moran.plot command
+#
+moran.plot(SsqrtPPOV, socoQ1.gal, labels=NULL, xlab=NULL, ylab=NULL, pch=16)
+#
+# Can even get the leverage points labeled with county name:
+#
+moran.plot(SsqrtPPOV, socoQ1.gal, labels=as.character(socotxt$NAME),
+           xlab=NULL, ylab=NULL, pch=16)
+#
+# But this is ridiculous for a data set of this size.  Can turn off the
+# labels of influential observations with argument labels=FALSE; can
+# suppress the listing of influential observations with quiet=TRUE;  can
+# set the plotting symbol to a O with pch=1 
+#
+moran.plot(SsqrtPPOV, socoQ1.gal, labels=FALSE,
+           xlab=NULL, ylab=NULL, quiet=TRUE, pch=1)
+#
+# This is still rather ugly.  The option to suppress the plotting symbol for
+# influential observations is hard-coded into the script for the function
+# moran.plot.  NOW COMES A BRIEF DIGRESSION TO HIGHLIGHT THE STRENGTH OF
+# WORKING IN AN OPEN SOURCE ENVIRONMENT.  I simply typed >moran.plot.  The
+# R console gave me the full R script for this function.  I copied the code
+# and pasted it into Notepad.  I found the offending code, changed it, and
+# called the slightly revised script "my.moran.plot".  I brought this into 
+# my script program (it's at the very bottom), ran it, and now I can create
+# what I think is a more pleasing, GeoDa-like, Moran Scatterplot by just
+# using the function my.moran.plot:
+
+########################################################################
+####
+#### HERE'S HOW I CREATED A CLEANER LOOKING MORAN SCATTERPLOT BY SLIGHTLY
+#### MODIFYING THE R FUNCTION moran.plot
+####
+########################################################################
+#
+# Steps:
+# 1.  Get the code of the function by simply typing the function name at the
+#     R prompt.  The full code will appear in the R console.
+# 2.  Swipe the full code, copy it, and read it into Notepad (not Word).
+# 3.  While in Notepad, locate the offending code and change it.
+# 4.  Give the revised function a new name like "my.function"
+# 5.  Swipe the new code in the Notepad file, copy, and paste into your
+#     script file.
+# 6.  Run the new function so that R will recognize what to do when you call
+#     your my.function.
+#
+# I brought in the function moran.plot, changed it, called it my.moran.plot.
+# What follows is the script of the new function.  Must run this before R
+# can recognize what to do when the my.moran.plot is run.
+#
+############################################################################
+###
+### Create function my.moran.plot
+###
+############################################################################
+#
+my.moran.plot <- function (x, listw, zero.policy = FALSE, spChk = NULL,
+                           labels = NULL, xlab = NULL, ylab = NULL, quiet = FALSE, ...) 
+{
+  if (!inherits(listw, "listw")) 
+    stop(paste(deparse(substitute(listw)), "is not a listw object"))
+  xname <- deparse(substitute(x))
+  if (!is.numeric(x)) 
+    stop(paste(xname, "is not a numeric vector"))
+  if (any(is.na(x))) 
+    stop("NA in X")
+  n <- length(listw$neighbours)
+  if (n != length(x)) 
+    stop("objects of different length")
+  if (is.null(spChk)) 
+    spChk <- get.spChkOption()
+  if (spChk && !chkIDs(x, listw)) 
+    stop("Check of data and weights ID integrity failed")
+  labs <- TRUE
+  if (is.logical(labels) && !labels) 
+    labs <- FALSE
+  if (is.null(labels) || length(labels) != n) 
+    labels <- as.character(attr(listw, "region.id"))
+  wx <- lag.listw(listw, x, zero.policy = zero.policy)
+  if (is.null(xlab)) 
+    xlab <- xname
+  if (is.null(ylab)) 
+    ylab <- paste("spatially lagged", xname)
+  plot(x, wx, xlab = xlab, ylab = ylab, ...)
+  if (zero.policy) {
+    n0 <- wx == 0
+    symbols(x[n0], wx[n0], inches = FALSE,
+            circles = rep(diff(range(x))/50, 
+                          length(which(n0))), bg = "grey", add = TRUE)
+  }
+  xwx.lm <- lm(wx ~ x)
+  abline(xwx.lm)
+  abline(h = mean(wx), lty = 2)
+  abline(v = mean(x), lty = 2)
+  infl.xwx <- influence.measures(xwx.lm)
+  is.inf <- which(apply(infl.xwx$is.inf, 1, any))
+  points(x[is.inf], wx[is.inf], pch = 1, cex = 1) # CHANGED THIS
+  if (labs) 
+    text(x[is.inf], wx[is.inf], labels = labels[is.inf], 
+         pos = 2, cex = 0.7)
+  rownames(infl.xwx$infmat) <- labels
+  if (!quiet) 
+    summary(infl.xwx)
+  invisible(infl.xwx)
+}
+#
+
+my.moran.plot(SsqrtPPOV, socoQ1.gal, labels=FALSE,
+              xlab=NULL, ylab=NULL, quiet=TRUE, pch=1)
+#
+# Check that slope matches our calculated Moran statistic
+#
+lagsqrtPPOV <- lag.listw(socoQ1.gal, SsqrtPPOV)
+lm(lagsqrtPPOV ~ SsqrtPPOV)
+#
+### Before we move on,  let's clean things up:
+ls()
+rm(list=ls())
+ls()
+
+#
+###########################################################################
+#####
+############## Here's how I transformed PFHH and PHSLS ####################
+#####
+###########################################################################
+#
+summary(PFHH)  # No zero values; slight right skew
+summary(PHSLS) # No zero values; slight left skew
+#
+# I'm going to reverse the direction of the education variable.
+# I find it easier to say, "As education goes up, poverty goes
+# down", rather than the reverse
+#
+PHSPLUS <- 1 - PHSLS
+summary(PHSPLUS)  # No zero values; slight right skew.  I prefer this.
+#
+# First, let's see where we might want to go with PFHH:
+#
+par(mfrow=c(1,2))
+plot(sqrt(PFHH), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ sqrt(PFHH)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ sqrt(PFHH)), col=4)
+# And now the log transformation:
+#
+plot(log(PFHH), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ log(PFHH)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ log(PFHH)), col=4)
+par(mfrow=c(1,1))
+#
+# OMG.  I don't like this at all.  There's less linearity in the log(PFHH)
+# plot.  Also one troublesome outlier that ought to be pursued:
+#
+which(log(PFHH) < -2.8)
+
+# these two are commented out because socoexcl is not defined at this point
+#row.names(socoexcl) <- socoexcl$NAME
+#row.names(socoexcl)[1066]
+
+#
+# Oh dear.  Can that really be?  Glasscock County, TX?  Wikipedia Time.
+# Not far from Loving Co., (at least in Texas terms).  2000 Pop. = 1,406.
+# Let's check the R-square term in a simple linear regression set up:
+#
+reg2sqrt <- lm(sqrt(PPOV) ~ sqrt(PFHH))
+reg2log <- lm(sqrt(PPOV) ~ log(PFHH))
+summary(reg2sqrt)
+summary(reg2log)
+#
+# Again, not much to write home about.  It's a tough call.
+# If this were my dissertation, I'd probably drop Glasscock from the
+# analysis.  Since it's not, I'm going to leave the outlier in for now,
+# and go with the sqrt(PFHH) transformation.  I can probably live with that
+# but will sleep uneasily tonight.
+
+# And now let's check PHSPLUS:
+#
+par(mfrow=c(1,2))
+plot(sqrt(PHSPLUS), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ sqrt(PHSPLUS)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ sqrt(PHSPLUS)), col=4)
+# And now the log transformation:
+#
+plot(log(PHSPLUS), sqrt(PPOV))
+abline(lm(sqrt(PPOV) ~ log(PHSPLUS)), lty=2, lwd=2, col=2)
+lines(lowess(sqrt(PPOV) ~ log(PHSPLUS)), col=4)
+par(mfrow=c(1,1))
+#
+# My first impression is to prefer the log transformation
+# Let's check the R-square term in a simple linear regression set up:
+#
+reg3sqrt <- lm(sqrt(PPOV) ~ sqrt(PHSPLUS))
+reg3log <- lm(sqrt(PPOV) ~ log(PHSPLUS))
+summary(reg3sqrt)
+summary(reg3log)
+#
+# Okay, not great, but I'm going with the log(PHSPLUS) transformation
+#
+```
+
+# Regression Modeling
+
+```{r regr, echo=TRUE, error=TRUE, fig.align = "center"}
+
+###########################################################################
+#### ONTO REGRESSION MODELING, SPATIAL REGRESSION MODELING & EDA
+###########################################################################
+
+# In case we've accidentally removed necessary packages, add them again:
+library(classInt)
+library(MASS)
+library(car)
+library(graphics)
+library(lmtest)
+library(spdep)
+library(spatstat)
+library(maptools)
+library(spatstat)
+library(spgwr)
+library(stats)
+library(prettyR)
+#
+###############################################
+#
+# READ IN THE DATA
+#
+# Again, we've cleaned things up, so let's bring the file back:
+#
+socotxt <- read.table('data/south00.txt', header=T)
+socotxt[c(1:10),c(1:8)]
+attach(socotxt)
+#
+# Let's be somewhat simple minded about this and decide that a good model
+# to predict child poverty would be to use the county unemployment rate,
+# the proportion of female headed families with kids but no spouse, and
+# the proportion of persons age 18+ with more than a HS education (with all
+# variables reasonably transformed).  And let's pretend we know nothing at
+# this point about spatial modeling.  The regression specification notation
+# is commonly referred to as Wilkinson-Rogers notation.
+#
+names(socotxt)
+cpov <- sqrt(PPOV)
+femhh <- sqrt(PFHH)
+unem <- sqrt(PUNEM)
+hied <- log(1-PHSLS)
+#
+#
+########### TO BEGIN, FIT AND TEST AN OLS LINEAR REGRESSION MODEL
+#
+#
+reg1 <- lm(cpov ~ femhh + unem + hied)
+summary(reg1)
+#
+#
+# Let's see how things look.  Ta da..!  More EDA
+#
+### OLS DIAGNOSTICS
+#
+# Begin with an examination of the residuals and test for constant
+# residual variance and possible nonlinearities (see Faraway 2005:Ch.4)
+#
+names(reg1)  # Check to see how to recover the y-hat values
+#
+yhat <- reg1$fitted.values
+y <- sqrt(PPOV)
+summary(y)   # Did thus to recover the min and max values of y for plot
+#
+row.names(socotxt) <- socotxt$NAME
+plot(yhat, y, ylim=c(0,0.8))
+lines(lowess(y ~ yhat), lwd=2, col=4)
+abline(lm(y ~ yhat), lwd=2, col=2)
+# commented out to render it into HTML
+# identify(yhat, y, row.names(socotxt))
+
+#
+# Maybe not so bad.  Reasonably tight except for maybe 25-30 points
+#
+(cor(yhat,y))^2
+#
+# Sometimes called pseudo R-square statistic, but for
+# OLS it's the same thing.
+#
+###
+########### OLS RESIDUAL DIAGNOSTICS
+###
+#
+# Let's begin with an examination of the residuals and test first for
+# constant residual variance (homoskedasticity).
+#
+plot(fitted(reg1), residuals(reg1), xlab="Fitted y", ylab= "Residuals",
+     main="Plot of Residuals against Fitted y")
+abline(h=0)
+# commented out to render it into HTML
+# identify(fitted(reg1), residuals(reg1), row.names(socotxt))
+
+#
+# Oh man!  Those Texas counties are messing things up.  But with the
+# exception a few real klinkers.  It may not be so bad. 
+#
+# When it's difficult to tell, some analysts suggest looking at the
+# absolute value of the residuals:
+#
+plot(fitted(reg1), abs(residuals(reg1)), xlab="Fitted y",
+     ylab= "|Residuals|")
+# commented out to render it into HTML
+# identify(fitted(reg1), abs(residuals(reg1)), row.names(socotxt))
+
+#
+# Some "residual vs carrier" plots:
+#
+plot(femhh, residuals(reg1), xlab="SQRT(PFEMHH)",
+     ylab= "Residuals", main="Residuals vs SQRT(PFEMHH)")
+abline(h=0)
+# commented out to render it into HTML
+# identify(femhh, residuals(reg1), row.names(socotxt))
+
+#
+plot(unem, residuals(reg1), xlab="SQRT(PUNEM)",
+     ylab= "Residuals", main="Residuals vs SQRT(PUNEM)")
+abline(h=0)
+# commented out to render it into HTML
+# identify(unem, residuals(reg1), row.names(socotxt))
+
+#
+plot(hied, residuals(reg1), xlab="LOG(1-PHSLS)",
+     ylab= "Residuals", main="Residuals vs LOG(PHSPLUS)")
+abline(h=0)
+# commented out to render it into HTML
+# identify(hied, residuals(reg1), row.names(socotxt))
+
+#
+# Can get a plot and transformation diagnostic using the spread-level
+# plot suggested by Tukey (1977):
+#
+spreadLevelPlot(reg1)
+#
+# Another test is the nonconstant variance test, checking again for an
+# association of residual spread with fitted values:
+#
+ncvTest(reg1)  # Must reject homoskedastic errors
+#
+###
+### What to do???  Let's balance the variances using a form of Weighted
+### Least Squares called Estimated Generalized Least Squares (EGLS)
+###
+#
+# The EGLS steps are:
+# 1. Save the residuals from the OLS run.  Square them and take natural logs.
+# 2. Use the log of the squared residuals as a new dependent variable, and
+#    rerun the regression with this DV.  Save the predicted values.
+# 3. Create a new variable by exponentiating the predicted values.
+# 4. Take the reciprocal of the exponentiated predicted values.
+# 5. Run the original regression equation, but use the new variable from
+#    step 4 as a regression weight.  The regression analysis has now been
+#    approximately corrected for violation of the homoskedasticity assumption.
+#
+### So let's do it.
+#
+lnsqresid <- log(residuals(reg1)^2)
+reg2 <- lm(lnsqresid ~ femhh + unem + hied)
+exppred <- exp(fitted(reg2))
+wt <- 1/exppred
+#
+# Here's the new regression from step 5:
+#
+reg3 <- lm(cpov ~ femhh + unem + hied, weight=wt)
+#
+# Let's again check these new residuals for constant residual variance.
+#
+plot(fitted(reg3), residuals(reg3), xlab="Fitted y", ylab= "Residuals")
+abline(h=0)
+# commented out to render it into HTML
+# identify(fitted(reg3), residuals(reg3), row.names(socotxt))
+
+#
+# Just looking at it suggests we still have a problem, but it's better now.
+#
+# Again, using the nonconstant variance test we can check for an
+# association of residual spread with fitted values:
+#
+ncvTest(reg3)  # Cool!  Can't reject homoskedasticity.
+#
+# Might also want to check the loglikelihood statistic and the AIC
+#
+# logLik(reg1)
+AIC(reg1)
+# logLik(reg3)  # EGLS a bit better
+AIC(reg3)     # EGLS a bit better
+#
+# Other regression approaches are possible.  But at this point let's
+# consider ourselves happy... and proceed.
+#
+# Some interesting plots can be obtained from the regression results.
+# Among them is the "component-plus-residual" (partial residual) plots
+# for the predictors in the two regressions.  Each plot includes the least
+# squares line (representing the plane viewed edge-on in the direction of the
+# corresponding predictor) and a nonparametric regression smoother (See
+# Fox 2002:32).  Note:  this is an interactive graphic; escape with a 0.
+#
+crPlots(reg1)   # OLS model
+#
+crPlots(reg3)   # EGLS model
+#
+#### LET'S CONTINUE BY CHECKING FOR NORMALITY OF RESIDUALS
+#
+me1 <- mean(residuals(reg1))
+me1
+sd1 <- sd(residuals(reg1))
+sd1
+summary(residuals(reg1))
+hist(residuals(reg1), breaks=seq(-.3, .4, .01), col=8, probability=T,
+     ylab='Density', main='Histogram of Residuals(reg1)',
+     xlab='Residuals(reg1)')
+box()
+curve(dnorm(x, mean=me1, sd=sd1), from=-.2, to=.2, add=T, col='red', lwd=2)
+leg.txt <- c("Residuals(reg1)", "Min. =         -0.224",
+             "Max.=          0.366",
+             "Mean =        0.000", "Median =   -0.002", "Std. dev. =  0.055")
+legend (x=0.12, y=8.7, leg.txt)
+#
+me3 <- mean(residuals(reg3))
+me3
+sd3 <- sd(residuals(reg3))
+sd3
+summary(residuals(reg3))
+hist(residuals(reg3), breaks=seq(-.3, .4, .01), col=8, probability=T,
+     ylab='Density', main='Histogram of Residuals(reg3)',
+     xlab='Residuals(reg3)')
+box()
+curve(dnorm(x, mean=me3, sd=sd3), from=-.2, to=.2, add=T, col='red', lwd=2)
+leg.txt <- c("Residuals(reg3)", "Min. =         -0.224",
+             "Max.=          0.380",
+             "Mean =       0.000", "Median =   -0.002", "Std. dev. =  0.055")
+legend (x=0.12, y=8.7, leg.txt)
+#
+shapiro.test(residuals(reg1))  # Must reject normality
+shapiro.test(residuals(reg3))  # Must reject normality
+#
+# Exclude several Texas Counties and a couple more from the test
+#
+shapiro.test(residuals(reg1)[-c(275,774,1048,1066,1114,1130,1135,1143)])
+shapiro.test(residuals(reg3)[-c(275,774,1048,1066,1114,1130,1135,1143)])
+#
+# Hmmm. Still must reject normality
+#
+par(mfrow=c(1,2))
+qqnorm(residuals(reg1),ylab="Residuals(reg1)")
+qqline(residuals(reg1))
+qqnorm(residuals(reg3),ylab="Residuals(reg3)")
+qqline(residuals(reg3))
+#
+# Exclude several Texas Counties and a couple more from the test
+#
+qqnorm(residuals(reg1)[-c(275,774,1048,1066,1114,1130,1135,1143)],
+       ylab="Residuals(reg1)")
+qqline(residuals(reg1))
+qqnorm(residuals(reg3)[-c(275,774,1048,1066,1114,1130,1135,1143)],
+       ylab="Residuals(reg3)")
+qqline(residuals(reg3))
+par(mfrow=c(1,1))
+#
+# Better, but still some problems in the upper tail
+#
+###
+### Check for independence of residuals
+###
+#
+# Durbin-Watson test for correlated errors is available in package lmtest
+#
+dwtest(reg1)
+
+# it causes errors 
+# Error in dwtest(reg3) : weighted regressions are not supported
+#dwtest(reg3)
+
+#
+# But, we should also look at the standard Moran test for residual
+# dependence:
+#
+socogal <- read.gal("data/socoQueen1.GAL", override.id=TRUE)
+socoQ1.gal <- nb2listw(socogal)
+#
+# BTW, here are some interesting queries about the weights matrix:
+#
+names(attributes(socoQ1.gal))  # Attribute names associated with socoQ1.gal
+card(socoQ1.gal$neighbours)   # Shows the no. of neighbors for each obs.
+range(card(socoQ1.gal$neighbours))  # Range of the no. of neighbors
+1/rev(range(card(socoQ1.gal$neighbours))) # Range of the weights
+#
+moran.test(reg1$residuals, socoQ1.gal, alternative="two.sided")
+moran.test(reg3$residuals, socoQ1.gal, alternative="two.sided")
+#
+####
+########### SPATIAL CORRELOGRAM
+####
+# This is a nice plot available in spdep as the sp.correlogram function
+# But it takes quite a while to do all the calculating
+#
+par(mfrow=c(1,1))
+spcorr <- sp.correlogram(socogal, sqrt(PPOV), order = 8, method = "I",
+                         style = "W", randomisation = TRUE)
+plot(spcorr)
+#
+###
+### CLEARLY WE NEED TO MOVE TO A SPATIAL REGRESSION MODEL
+###
+# But how to proceed??
+# GeoDa-style Lagrange multiplier tests can be obtained using the following:
+#
+lm.LMtests(reg1, nb2listw(socogal), test=c("LMerr", "LMlag", "RLMerr",
+                                           "RLMlag", "SARMA"))
+
+```
+
+# Spatial Regression Modeling
+
+```{r sda_regr, echo=TRUE, error=TRUE, fig.align = "center"}
+#
+###
+############ SPATIAL REGRESSION MODELS
+###
+#
+# Spatial lag and spatial error models estimated by maximum likelihood:
+# 
+soco.lag.eig <- lagsarlm(cpov ~ femhh + unem + hied,
+                         data=socotxt, nb2listw(socogal), method="eigen", quiet=FALSE)
+summary(soco.lag.eig)
+#
+soco.err.eig <- errorsarlm(cpov ~ femhh + unem + hied,
+                           data=socotxt, nb2listw(socogal), method="eigen", quiet=FALSE)
+summary(soco.err.eig)
+#
+# It pooped out.  It's detecting too high a correlation structure in our
+# X matrix and is unable to invert X.  Let's set the tol.solve to a
+# lower value.  The tol.solve DEFAULT = 1.0e-10.
+#
+soco.err.eig <- errorsarlm(cpov ~ femhh + unem + hied,
+                           data=socotxt, nb2listw(socogal), method="eigen", quiet=FALSE,
+                           tol.solve=1.0e-15)
+#
+# That's better!
+#
+summary(soco.err.eig)
+#
+# Can also try estimating the error model using Kelejian &
+# Prucha's generalized moments estimator
+
+socoKP <- GMerrorsar(cpov ~ femhh + unem + hied,
+                     data=socotxt, nb2listw(socogal), verbose=FALSE)
+summary(socoKP)
+#
+# Okay.  Let's compare AICs:
+#
+AIC(reg1)
+AIC(soco.lag.eig)
+AIC(soco.err.eig)
+AIC(socoKP)
+#
+# While it struggled, the soco.err.eig model has the lowest AIC.
+# We might keep in mind, however, the lack of normality in our OLS
+# residuals.  Might encourage some preference for the GMM fit.
+#
+###
+######### CREATING THE LOCAL MORAN STATISTIC IN R
+###
+# Create local Moran for variable cpov.
+# Use the 1st order queen weights matrix socoQueen1.GAL.
+#
+locm <- localmoran(cpov, socoQ1.gal, alternative="two.sided")
+summary(locm)
+#
+# We can export the table (actually a matrix object) for
+# mapping outside of R if desired:
+#
+write.table(locm, "data/socolocm.txt")
+
+#
+# If we want to see all 1,387 local moran statistics (NOT ADVISED!),
+# just type the object name. >locm.  Better to be satisfied with the 
+# command >summary(locm) as given above.
+###
+###
+######### CREATING A LISA MAP IN R
+###
+###
+# We can plot the local Moran (LISA) values but it's a bit complicated to
+# mask out those that are not significant, and perhaps even harder to
+# get the colors to match the GeoDa LISA map.  But here we go anyway. 
+#
+# For the LISA output, which is a map, we need to read the shape file
+# into R.  Read the shape file into R and summarize the file
+#
+soco <- readShapePoly("data/south00.shp")
+#
+summary(soco)
+#
+# Things should look familiar.  This is basically the same data set as
+# the .txt file we've been using.
+#
+# Now, we convert our SpatialPolygonsDataFrame object to a data.frame
+# object.
+#
+soco.df <- data.frame(soco)
+#
+# How's it looking?
+#
+par(mfrow=c(1,1))
+plot(soco)   # Cool!
+#
+# Create the logical variables in the data frame rather than as
+# individual objects.  First, standardize the variables:
+#
+Scpov <- (cpov - mean(cpov))/sd(cpov)
+lagScpov <- lag.listw(socoQ1.gal, Scpov)
+summary(Scpov)
+summary(lagScpov)
+plot(Scpov, lagScpov)
+abline(h=0, v=0)
+#
+# This should look like a Moran scatterplot
+# Can even use the identify function from the car package
+#
+# commented out to render it into HTML
+# identify(Scpov, lagScpov, row.names(socotxt))
+
+#
+# Here's some easily retrieved information on a specific observation:
+#
+Scpov[146]     # Standardized sqrt(CPOV) for Washington DC
+lagScpov[146]  # Average value of Standardized(sqrt(CPOV)) for DC's neighbors
+locm[146,1]    # Local Moran I for DC
+locm[146,4]    # z-value for significance
+locm[146,5]    # p-value
+#
+#
+soco.df$hh <- (Scpov>= 0 & lagScpov>= 0) & (locm[,5]<= 0.2)
+soco.df$ll <- (Scpov<= 0 & lagScpov<= 0) & (locm[,5]<= 0.2)
+soco.df$hl <- (Scpov>= 0 & lagScpov<= 0) & (locm[,5]<= 0.2)
+soco.df$lh <- (Scpov<= 0 & lagScpov>= 0) & (locm[,5]<= 0.2)
+soco.df$ns <- locm[,5]> 0.2
+#
+#
+which(soco.df$hh==TRUE)
+which(soco.df$ll==TRUE)
+which(soco.df$hl==TRUE)
+which(soco.df$lh==TRUE)
+which(soco.df$ns==TRUE)
+#
+# Create a single categorial variable summing up the
+# five logical variables
+# I know I could have written a loop, but....
+soco.df$var <- 0
+soco.df$var
+soco.df$var <- replace(soco.df$var, (soco.df$hh==TRUE), 1)
+soco.df$var
+soco.df$var <- replace(soco.df$var, (soco.df$ll==TRUE), 2)
+soco.df$var
+soco.df$var <- replace(soco.df$var, (soco.df$hl==TRUE), 3)
+soco.df$var
+soco.df$var <- replace(soco.df$var, (soco.df$lh==TRUE), 4)
+soco.df$var
+soco.df$var <- replace(soco.df$var, (soco.df$ns==TRUE), 5)
+soco.df$var
+#
+#
+# Set the breaks for the thematic map classes
+#
+breaks <-seq(1,5,1)
+#
+# Set the corresponding labels for the thematic map classes
+#
+labels <- c("high-High", "low-Low", "High-Low", "Low-High", "Not Signif.")
+#
+# Determine which map class each observation falls into based on
+# the value of soco.df$var
+# sort(breaks, decreasing = FALSE)
+np <- findInterval(soco.df$var, breaks, all.inside=FALSE)
+#
+# Assign colors to each map class
+#
+colors <- c("red", "blue", "lightpink", "skyblue2", "white")
+#
+# plot the SpatialPolygonsDataFrame using specified breaks
+# and color scheme
+#
+#
+plot(soco)
+plot(soco, col=colors[np], add=TRUE)
+mtext("LISA Map SQRT(CPOV)", cex=1.5, side=3, line=-2)
+legend("bottomleft", legend=labels, fill=colors, bty="n")
+#
+### Looks something like the GeoDa LISA map.  Would be hard for it to 
+### precisely replicate the GeoDa map because of the randomization used
+### in GeoDa to determine significance
+###
+########### CREATING A WEIGHTS MATRIX IN R
+###
+#
+# We don't have to rely exclusively on bringing our weights matrices
+# into R after creating them in GeoDa.  Indeed, in R we can have several
+# different wights matrices to serve different purposes.  Can even create
+# in R an inverse distance weight (IDW) that often is much more appealing
+# then the simply distance matrix in GeoDa.
+#
+### Here's the .GAL weights matrix brought in from GeoDa
+#
+class(socogal)
+#
+# Now create the coordinate list from the shapefile
+#
+coords <- coordinates(soco)
+#
+# Take a look at the first 10 rows in object coords
+#
+coords[c(1:10),]
+length(coords[,1])
+#
+# Here we create a neigbor the neighbor list from shape file polygons
+# It takes quite a while with a data set this large
+#
+xx <- poly2nb(soco)
+#
+# Check to see if our new weights matrix (xx) is different from that
+# produced by GeoDa
+#
+diff <- card(socogal) - card(xx)
+which(diff!=0)
+row.names(socotxt)[c(571,1240)]
+#
+# It looks like they differ for two observations:
+# Montgomery_MD and Arlington_VA
+#
+# Let's look at the summary of each:
+summary(xx)
+summary(socogal)
+#
+# It appears that in both cases, R found one more neighbor
+#
+############### Generate a distance matrix
+#
+coords1 <- coords
+coords2 <- coords
+dist_matrix <- crossdist(coords1[,1], coords1[,2], coords2[,1], coords2[,2])
+class(dist_matrix)
+isSymmetric(dist_matrix)
+#
+# Set diagonal elements of matrix to 0
+#
+diag(dist_matrix) <- 0.0
+dim(dist_matrix)
+#
+################ Generate an inverse distance matrix
+#
+IDW_matrix <- (1 / dist_matrix)
+IDWsq_matrix <- (1 / (dist_matrix^2))
+isSymmetric(IDWsq_matrix)
+#
+# Set diagonal elements of matrix to 0
+#
+diag(IDW_matrix) <- 0.0
+diag(IDWsq_matrix) <- 0.0
+dim(IDWsq_matrix)
+#
+dist.list.IDWsq <- mat2listw(IDWsq_matrix, row.names=socotxt$NAME)
+class(dist.list.IDWsq)
+names(dist.list.IDWsq)
+#
+# Generate a binary connectivity matrix with 100 km threshold
+#
+nb.binary <- ifelse((dist_matrix <= 100000), 1, 0)
+diag(nb.binary) <- 0
+nb.binary.list <- mat2listw(nb.binary, row.names=socotxt$NAME)
+class(nb.binary.list)
+names(nb.binary.list)
+summary(nb.binary.list)
+dist.B <- nb2listw(nb.binary.list$neighbours, glist=NULL, style="B")
+dist.W <- nb2listw(nb.binary.list$neighbours, glist=NULL, style="W")
+isSymmetric(nb.binary)
+dist.list.binary <- mat2listw(nb.binary, row.names=socotxt$NAME)
+#
+# If the centroids are within 100 km, then weight them according to
+# the inverse distance between the centroids
+dlist <- nbdists(dist.list.binary$neighbours, coords1, longlat = NULL)
+idw.sq <- lapply(dlist, function(x) 1/(x^2))
+dist.B.IDW.sq <- nb2listw(dist.list.binary$neighbours, glist=idw.sq,
+                          style="B")
+summary(dist.B.IDW.sq)
+class(dist.B.IDW.sq)
+#
+######### Check it out
+#
+names(attributes(dist.B.IDW.sq))  # Attribute names 
+card(dist.B.IDW.sq$neighbours)   # Shows the no. of neighbors for each obs.
+range(card(dist.B.IDW.sq$neighbours))  # Range of the no. of neighbors
+1/rev(range(card(dist.B.IDW.sq$neighbours))) # Range of the weights
+#
+# Try it out
+#
+moran.test(reg1$residuals, dist.B.IDW.sq, alternative="two.sided")
+moran.test(reg1$residuals, socoQ1.gal, alternative="two.sided")
+
+#Ok, we are ready to move on to advanced stuff
+```
+
+# Geographically Weighted Regression Analysis
+
+```{r gwr, echo=TRUE, error=TRUE, fig.align = "center"}
+
+###########################################################################
+### GEOGRAPHICALLY WEIGHTED REGRESSION ANALYSIS
+##########################################################################
+
+#SET LIBRARIES - or make sure they are loaded ))
+
+library(spdep)
+library(RColorBrewer)
+library(spgwr)
+library(stats)
+library(prettyR)
+library(classInt)
+library(foreign)
+
+#note the warning regarding changes in default kernel and CV criteria 
+#gwr.Gauss: w[ij] = exp^-(1/2)(d[ij]/h)^2;gwr.gauss: w[ij] = exp^-(d[ij]/h)^2 
+#the defaults match GWR3.0 defaults (i.e. fixed kernel, Gaussian weights [gwr.Gauss], CV calibration)
+#to learn more about spgwr:  >help(package=spgwr), see also http://cran.r-project.org/web/packages/spgwr/spgwr.pdf
+#to learn more about GWR3.0: http://ncg.nuim.ie/ncg/GWR/index.htm 
+#the GWR3.0 manual is available at: http://www.geog.ubc.ca/courses/geog471/labs/GWR3manual.htm
+
+#SET WORKING DIRECTORY
+
+#setwd("//icpsr-milan/userdocs$/icpsr-kcurtis/My Documents/2009/Labs/RLabs")
+
+#LOAD SHAPEFILES
+
+south.shape<-readShapePoly("data/south00.shp")
+south.data<-data.frame(south.shape)
+attach(south.data)
+
+#CHECK DATA
+
+str(south.data) 
+
+#you can also use colnames(south.data) if you only want the list of variables
+
+#BIVARIATE DESCRIPTIVES
+
+model.vars<-cbind(SQRTPPOV,PFHH,PUNEM,OTMIG)
+cor(model.vars) #correlation matrix
+
+#FANCY SCATTER PLOTS
+
+pairs(model.vars,
+      panel=function(x,y){
+        points(x,y)
+        abline(lm(y~x), lty=2)
+        lines(lowess(x,y))
+      },
+      diag.panel=function(x){
+        par(new=T)
+        hist(x, main="", axes=F, nclass=20)
+      }
+)
+
+#GLOBAL MODEL
+
+#as shown below, this spits out automatically
+#the comparison helps us know that the GWR commands are working
+
+global.model<-lm(SQRTPPOV~PFHH+PUNEM+OTMIG)
+summary(global.model)
+
+#focus on the "coefficient" portion of the summary
+#we see the intercept and three parameter estimates for the three predictors
+#these will be useful for comparison with the GWR model
+
+
+#DEFINE COORDINATES
+
+#We need a grid reference for the location of each item in the data set
+#we create this location using the X & Y coordinates of the county centroids
+
+locations<-cbind(XCOORD, YCOORD)
+
+#BANDWIDTH SELECTION
+
+#we need to identify our "neighborhood"
+#aic calibration is too slow without sampling for a live run
+#make sure to set weights correctly (the shape of the kernel...bi-square v.s. Gaussian) 
+#unlike GWR3.0 you are allowed to match bisquare weights with a fixed kernel and vice versa
+#this gives us more flexibility in defining the "neigbhorhood"
+
+a.bw<-gwr.sel(SQRTPPOV~PFHH+PUNEM+OTMIG, adapt = TRUE, method = "cv", gweight = gwr.bisquare, coords = locations) 
+
+#we've requested an adaptive bi-square distance weight to be determined through cross-validation
+#adaptive bandwidth (bw) ~ 0.04253827 
+
+f.bw<-gwr.sel(SQRTPPOV~PFHH+PUNEM+OTMIG, adapt = FALSE, method = "cv", gweight = gwr.Gauss, coords = locations) 
+
+
+#we've requested an fixed Gaussian distance weight to be determined through cross-validation
+#fixed bandwidth (bw) ~ 94212.28
+
+#this will take some time
+
+#remember that adaptive bw is expressed here as a proportion of sample size (.042, derived from a.bw)
+#to translate into GWR3.0 terms, the adaptive bandwidth is ~59 nearest neighbors
+
+#fixed bandwidth is expressed in terms of distance (here, meters)
+#this is the same as GWR3.0
+
+#can skip bandwidth selection and enter specific bandwidth below
+
+#GWR MODEL
+
+#we now fit a GWR model that permits local variation in parameters
+#make sure model weights, bw, etc. match those of calibration identified above
+
+#note that the input for the adapt command is a value (from above), not a logical expression
+# GWR MODEL WITH ADAPTIVE WEIGHTS
+
+a.model<-gwr(SQRTPPOV~PFHH+PUNEM+OTMIG, adapt = a.bw, gweight = gwr.bisquare, coords = locations, hatmatrix = TRUE)
+a.model
+
+# GWR MODEL WITH FIXED WEIGHTS
+# (Bandwidth Generated)
+
+
+f.model<-gwr(SQRTPPOV~PFHH+PUNEM+OTMIG, bandwidth = 500000, gweight = gwr.Gauss, coords = locations, hatmatrix = TRUE)
+f.model
+#using generated bandwidth--problematic for Leung test for spatial variability with these data
+
+f.model<-gwr(SQRTPPOV~PFHH+PUNEM+OTMIG, bandwidth = 500000, gweight = gwr.Gauss, coords = locations, hatmatrix = TRUE)
+f.model
+#using designated bandwidth (~300 miles)--works for Leung test spatial variability with these data
+
+#this will take even more time
+
+#note the change from adapt = a.bw to bandwidth = f.bw
+
+#the adapt = a.bw (or bandwidth = f.bw) command is where you would enter a specific bandwidth (i.e., .30 of sample size or 5,000 meters)
+
+#request the hatmatrix in the GWR model because it is necessary to run the tests for spatial variability conducted below
+
+#full results are saved under a.model$SDF or f.model$SDF
+
+a.model$SDF$PFHH_t<-a.model$SDF$PFHH/a.model$SDF$PFHH_se
+a.model$SDF$PUNEM_t<-a.model$SDF$PFHH/a.model$SDF$PFHH_se
+a.model$SDF$OTMIG_t<-a.model$SDF$PFHH/a.model$SDF$PFHH_se
+
+#attaches t values
+
+a.model$SDF$FIPSID<-south.data$FIPS
+
+#attaches FIPS code
+
+a.results<-a.model$SDF
+write.dbf(a.results, "a_results.dbf")
+
+#writes results to .dbf file
+
+f.model$SDF$PFHH_t  <-f.model$SDF$PFHH/f.model$SDF$PFHH_se
+f.model$SDF$PUNEM_t <-f.model$SDF$PUNEM/f.model$SDF$PUNEM_se
+f.model$SDF$OTMIG_t <-f.model$SDF$OTMIG/f.model$SDF$OTMIG_se
+
+#attaches t values
+
+f.model$SDF$FIPSID<-south.data$FIPS
+
+#attaches FIPS code
+
+f.results<-f.model$SDF
+write.dbf(f.results, "data/f_results.dbf")
+
+#writes results to .dbf file
+
+#output contains local parameter estimates and associated SEs, plus local R2, sum of weights, and residuals plus the requested t values
+
+
+#TESTS
+
+
+BFC02.gwr.test(a.model)
+BFC02.gwr.test(f.model)
+
+#compares OLS model fit to GWR model fit
+
+LMZ.F3GWR.test(a.model)
+LMZ.F3GWR.test(f.model)
+
+#Leung test for spatial variability of parameter estimates 
+#too slow to run live
+#look to the output file "leung.txt"
+
+
+#MAP RESULTS
+
+pfhh.coefs<-a.model$SDF$PFHH
+plotvar<-pfhh.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+
+#legend location previously defined using locator (see sample code immediately below)
+#leg.loc<-locator(1)
+#x<-leg.loc$x
+#y<-leg.loc$y
+#resize plotting window to adjust map size
+
+pfhh_t.coefs<-a.model$SDF$PFHH_t
+plotvar<-pfhh_t.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+
+r2.coefs<-a.model$SDF$R2
+plotvar<-r2.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+
+#below is the same for the fixed bandwidth model
+
+pfhh.coefs<-f.model$SDF$PFHH
+plotvar<-pfhh.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+
+
+pfhh_t.coefs<-f.model$SDF$PFHH_t
+plotvar<-pfhh_t.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+
+r2.coefs<-f.model$SDF$R2
+plotvar<-r2.coefs 
+nclr<-5
+plotclr<-brewer.pal(nclr,"YlOrBr") 
+class<-classIntervals(plotvar, nclr, style= "quantile")
+colcode<-findColours(class, plotclr)
+par(mar = c(0, 0, 0, 0) + 0.1)
+plot(south.shape, col=colcode, xlim = c(-1010000, 3000000))
+leg.text<-c("19th percentile and below", "20th-39th percentile", "40th-59th percentile", "60th-79th percentile", "80th percentile and above")
+legend(1669095, -901678, legend= leg.text, fill=attr(colcode, "palette"), bty = "n")
+```
+
+# Assigment
+
+AND THIS IS YOUR ASSIGNMENT: The cautious analyst will use these results to
+inform future hypothesis testing methods; it is safe to test whether
+relationships vary across space using the Leung significance test, but other
+conclusions are best based in future analyses that are, in part, motivated by
+the suggestive results of the GWR analysis. What about the GWR analysis could
+inform the OLS and spatial regression analyses? Are the maps suggestive of
+spatial regimes? Do they suggest that the inclusion of specific interaction
+terms would be helpful? Based on these results, what other variables might you
+include in future analyses?
