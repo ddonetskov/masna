@@ -1,0 +1,15 @@
+BMINMIG		Rate of male black in-migration from non-south
+SQBMINMIG	Sqrt rate of male black in-migration from non-south
+BFINMIG		Rate of female black in-migration from non-south
+SQBFINMIG	Sqrt rate of female black in-migration from non-south
+INCARC		Proportion males 18-64 in correctional institutions
+BINCARC		Proportion black males 18-64 in correctional institutions
+RANDOM		Random generated number (for mapping demonstration)
+SQRTPPOV	Square root proportion children in poverty
+SQYCORD		Y coordinate squared (for trend surface)
+SQXCORD		X coordinate squared (for trend surface)
+XYCOORD		X coordinate * Y coordinate (for trend surface)
+SQRTUNEM	Square root proportion unemployed
+SQRTPFHH	Square root proportion female-headed households
+LOGHSPLS	Natural log proportion less than high school educated
+PHSPLUS		Natural log proportion high school educated or more
