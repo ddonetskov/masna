@@ -1,0 +1,195 @@
+%!TEX TS-program = lualatex
+
+% required for TexXstudio, an alternative is to change the default bibliography tool 
+% in TeXstudio settings (Options > Configure TeXstudio > Build > Default Bibliography Tool)
+% !BIB TS-program = biber
+
+% ------------------------------------------------------------------------------
+% Template Change History
+% 2018-09-22   1.1   Added the support of biber
+% 2018-05-19   1.0   Initial Version
+% ------------------------------------------------------------------------------
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{geometry}
+\geometry{left=20.00mm, right=15.00mm, top=20.00mm, bottom=20.00mm}
+
+% this is to get rid of 'Overfull \hbox...' errors
+\usepackage{microtype}
+
+% ------------------------------------------------------------------------------
+% Title
+% ------------------------------------------------------------------------------
+
+\title{\vspace{-1.5cm}This is a Title}
+\author{Dmitry Donetskov (ddonetskov@gmail.com)}
+\date{\today}
+
+% ------------------------------------------------------------------------------
+% LUA
+% ------------------------------------------------------------------------------
+
+%\usepackage{luacode}
+
+% ------------------------------------------------------------------------------
+% Graphics
+% ------------------------------------------------------------------------------
+
+\usepackage{graphicx}
+
+% ------------------------------------------------------------------------------
+% Figures
+% ------------------------------------------------------------------------------
+
+\usepackage{subcaption}         % subcaptions in figures
+
+% ------------------------------------------------------------------------------
+% Tables
+% ------------------------------------------------------------------------------
+
+\usepackage{multirow}           % spanning columns across multiple rows
+\usepackage{makecell}           % allows different formats inside cells
+
+\renewcommand\theadalign{bc}
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[4pt]}
+\renewcommand\cellgape{\Gape[4pt]}
+
+% ------------------------------------------------------------------------------
+% Math (Additional Support)
+% ------------------------------------------------------------------------------
+
+\usepackage{amsmath,amsfonts,amssymb,amsthm,mathtools}     % AMS
+\usepackage{cancel}             % four different modes of striking through
+\usepackage{dsfont}
+\usepackage{icomma}             % Smart comma: $0,2$ --- число, $0, 2$ --- перечисление
+\usepackage{physics}            % implementation of \abs and \norm
+\usepackage{xfrac}              % a better maintained replacement for nicefrac
+
+\DeclareMathOperator*{\D}{\mathbb{D}}   % the dispersion symbol
+\DeclareMathOperator*{\E}{\mathbb{E}}   % the expectation symbol
+
+\DeclareMathOperator*{\N}{\mathbb{N}}   % the set of natural numbers
+\DeclareMathOperator*{\R}{\mathbb{R}}   % the set of real numbers
+\DeclareMathOperator*{\Z}{\mathbb{Z}}   % the set of integers
+
+% e = 2.71...
+\newcommand{\e}{\mathrm{e}}
+
+% sign of independence
+% \vDash can also be used instead of \models
+% \raisebox{}{} is required for vertical alignment
+\newcommand{\independent}{\raisebox{0.05em}{\rotatebox[origin=c]{90}{$\models$}}}
+
+% ------------------------------------------------------------------------------
+% Russian Language (support thereof)
+% ------------------------------------------------------------------------------
+
+%\usepackage[english,russian]{babel}     % multilanguage support
+
+% ------------------------------------------------------------------------------
+% Fonts 
+% ------------------------------------------------------------------------------
+
+\usepackage{fontspec}           % required to load Open Type, True Type fonts
+\setmonofont{Courier New}
+
+% ------------------------------------------------------------------------------
+% Listing
+% ------------------------------------------------------------------------------
+
+\usepackage{listings}
+\lstset{language=Python}
+\lstset{frame=lines}
+%\lstset{caption={Insert code directly in your document}}
+\lstset{label={lst:code_direct}}
+\lstset{basicstyle=\footnotesize}
+
+% ------------------------------------------------------------------------------
+% Bibliography 
+% http://ctan.altspu.ru/macros/latex/exptl/biblatex-contrib/biblatex-gost/doc/biblatex-gost.pdf
+% ------------------------------------------------------------------------------
+
+\usepackage[backend=biber,
+%style=alphabetic,
+%citestyle=authoryear,
+citestyle=numeric,
+bibstyle=gost-numeric,
+sorting=ntvy,
+hyperref=true,
+dashed=false, 
+doi=false, 
+eprint=false, 
+isbn=false,
+url=false,
+%backref=true,
+maxcitenames=3]{biblatex}
+\addbibresource{biblio/references.bib}
+
+% this is to replace parentheses with square brackets
+%\ExecuteBibliographyOptions{parentracker=false}
+\makeatletter
+
+\newrobustcmd*{\parentexttrack}[1]{%
+  \begingroup
+  \blx@blxinit
+  \blx@setsfcodes
+  \blx@bibopenparen#1\blx@bibcloseparen
+  \endgroup}
+
+\AtEveryCite{%
+  \let\parentext=\parentexttrack%
+  \let\bibopenparen=\bibopenbracket%
+  \let\bibcloseparen=\bibclosebracket}
+
+\makeatother
+
+% ------------------------------------------------------------------------------
+% Bookmarking, citing, URL's
+% ------------------------------------------------------------------------------
+
+\usepackage{bookmark}
+
+% hyperref usually needs to be loaded last
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage{url}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=ForestGreen,
+    filecolor=red,      
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+% ------------------------------------------------------------------------------
+% Document
+% ------------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+TBC
+
+\end{abstract}
+
+\section{Section 1}
+
+\section{Section 2}
+
+\section{Section 3}
+
+% ------------------------------------------------------------------------------
+% Bibliography
+% Is that possible to make it as per ГОСТ Р7.05-2008?
+% ------------------------------------------------------------------------------
+%\printbibliography[heading=bibintoc,title={References}]
+
+\end{document}
