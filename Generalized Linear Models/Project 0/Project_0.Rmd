@@ -19,7 +19,7 @@ output:
       collapsed: false
     # others
     keep_md: TRUE
-    # theme: cosmo   # https://bootswatch.com/3/
+    theme: cosmo   # https://bootswatch.com/3/
   pdf_document:
     #geometry: "papersize={210mm,5000mm},left=3cm,right=3cm,top=2cm,bottom=2cm"
     # figure options
