@@ -305,7 +305,6 @@ data2['FVC_log']     <- log(data2['FVC'])
 Let's check what is the relation between the height and weight just to get an idea.
 
 ```{r}
-
 ggplot(data2, aes(x = height, y = weight), alpha = 0.7) +
   geom_smooth(method = 'lm', formula = y ~ x, color = 'light green', se = FALSE) +
   geom_smooth(method = "loess", formula = y ~ x) +
@@ -625,7 +624,7 @@ The data cannot explain the difference between the regions. Again, if we run the
 We choose *FVC ~ age + height* for the prediction, the graph also shows the observed values (as the
 black dots).
  
-```{r, fig.width=8, fig.height=12}
+```{r, fig.width=8, fig.height=10}
 data_pred <- tibble(age = seq(16, 60))
 data_pred['height'] <- 180
 data_pred['weight'] <- 80
@@ -633,34 +632,47 @@ data_pred['region'] <- 'M'
 
 models <- list(
   model = list(glm_FVC_gs_log, glm_FVC_gs_id, glm_FVC_G_log),
-  name =  c('glm_FVC_gs_log', 'glm_FVC_gs_id', 'glm_FVC_G_log'),
-  color = c('red', 'green', 'blue')
+  name =  c('glm_FVC_gs_log', 'glm_FVC_gs_id', 'glm_FVC_G_log')
 )
 
-g <- ggplot(data = data_pred, aes(x = age)) +
-  geom_point(data = data2, aes(x = age, y = FVC), alpha = 0.5)
-
-i <- 1
-for (m in models$model) {
+# getting the predictions
+for (i in c(1, 2, 3)) {
   
-  pred = predict(m, newdata = data_pred, type="response", se.fit = T)
-  name = models$name[i]
+  m <- models$model[[i]]
+  pred <- predict(m, newdata = data_pred, type="response", se.fit = T)
+  name <- models$name[i]
   data_pred[paste(name, '_fit', sep='')] <- pred$fit
   data_pred[paste(name, '_ci_upper', sep='')] <- pred$fit + qnorm(0.975)*pred$se.fit
   data_pred[paste(name, '_ci_lower', sep='')] <- pred$fit - qnorm(0.975)*pred$se.fit
   
-  color= models$color[i]
-  g <- g + 
-    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_fit', sep='')),      color = color) +
-    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_ci_upper', sep='')), color = color, alpha = 0.3) +
-    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_ci_lower', sep='')), color = color, alpha = 0.3)
-    
-  i <- i + 1
-    
 }
 
-g <- g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)')
-#g + scale_color_hue(labels = models$name) + theme(legend.position = 'right')
+
+# plotting the prediction
+colours <- c('observed'='black', 
+             'gaussian(log)'='red', 
+             'gaussian(identity)'='green',
+             'Gamma(log)'='blue')
+
+g <- ggplot(data = data_pred, aes(x = age)) +
+  geom_point(data = data2, aes(x = age, y = FVC, colour = names(colours)[1]), alpha = 0.5)
+
+n <- dim(data_pred)[1]
+
+for (i in c(1, 2, 3)) {
+  
+  name   <- models$name[i]
+  colour <- names(colours)[i+1]
+  g <- g + 
+    geom_line(aes_string(y = paste(name, '_fit', sep=''),      color = shQuote(colour)), alpha = 0.5) +
+    geom_line(aes_string(y = paste(name, '_ci_upper', sep=''), color = shQuote(colour)), alpha = 0.5) +
+    geom_line(aes_string(y = paste(name, '_ci_lower', sep=''), color = shQuote(colour)), alpha = 0.5)
+
+}
+
+g <- g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)') +
+  scale_color_manual(name = 'Legend', values = colours) +
+  theme(legend.position = c(0.8, 0.8))
 
 g
 
