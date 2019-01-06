@@ -9,7 +9,7 @@ output:
     dev: png
     fig_height: 7
     fig_width: 7
-    fig_retina: 2
+    #fig_retina: 2
     fig.align: center
     # TOC options
     toc: TRUE
@@ -19,7 +19,7 @@ output:
       collapsed: false
     # others
     keep_md: TRUE
-    theme: cosmo   # https://bootswatch.com/3/
+    # theme: cosmo   # https://bootswatch.com/3/
   pdf_document:
     #geometry: "papersize={210mm,5000mm},left=3cm,right=3cm,top=2cm,bottom=2cm"
     # figure options
@@ -46,7 +46,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 #knitr::opts_chunk$set(fig.align = "center")
 knitr::opts_chunk$set(comment = NA)
-#knitr::opts_chunk$set(dpi = 300)
+knitr::opts_chunk$set(dpi = 300)
 
 library(MASS)
 library(tidyverse)
@@ -660,10 +660,10 @@ for (m in models$model) {
     
 }
 
-g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)')
-#  scale_color_hue(labels = c('Actual', 'glm_FVC_gs_log', 'glm_FVC_G_log')) +
-#  theme() +
-#  guides()
+g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)') +
+  scale_color_hue(labels = models$name) +
+  theme(legend.position = 'right')
+
 ```
 
 There is only a slight visual difference if any between all three models for *FVC*.
@@ -693,7 +693,7 @@ data[, c('year', 'region')] %>%
   print(n = 100)
 ```
 
-# Appendix A. Technical Details of Report
+# Appendix A. Technical Details
 
 This version of the report was built with the following runtime environment:
 
