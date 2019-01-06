@@ -1,0 +1,704 @@
+---
+title: 'GLM: Project 0'
+author: 'Dina Yakovleva, Dmitry Donetskov, Elizaveta Chernenko, Ekaterina Korolkova'
+#date: "`r format(Sys.Date())`"
+#date: "2019-01-05"
+output:
+  html_document:
+    # figure options
+    dev: png
+    fig_height: 7
+    fig_width: 7
+    fig_retina: 2
+    fig.align: center
+    # TOC options
+    toc: TRUE
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    # others
+    keep_md: TRUE
+    theme: cosmo   # https://bootswatch.com/3/
+  pdf_document:
+    #geometry: "papersize={210mm,5000mm},left=3cm,right=3cm,top=2cm,bottom=2cm"
+    # figure options
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    fig_retina: 2
+    # TOC options
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    # others
+editor_options: 
+  chunk_output_type: inline
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(comment = NA)
+#knitr::opts_chunk$set(dpi = 300)
+
+library(MASS)
+library(tidyverse)
+library(readxl)
+
+library(ggplot2)
+library(GGally)
+library(ggfortify)
+
+# chunk option dev="png" is the default raster graphics format for HTML output
+#knitr::opts_chunk$set(dev="png")
+
+# chunk option dev="svg" produces very large vector graphics files
+# knitr::opts_chunk$set(dev="pdf")
+
+# more optimized svg, ligher in size, https://cran.r-project.org/web/packages/svglite/index.html
+#library(svglite)
+#knitr::opts_chunk$set(
+#  dev = "svglite",
+#  fig.ext = ".svg"
+#)
+```
+
+# Research Question
+
+Are there region-specific differences in the Forced Vital Capacity (FVC) and the Forced Expiratory Volume in 1 second (FEV1)? 
+
+The dataset consists of
+
+- *age*, the age in years,
+- *height*, the height in cm,
+- *weight*, the weight in kg,
+- *FVC*, Forced Vital Capacity, the volume of air that can forcibly be blown out, after full inspiration, measured in centiliter,
+- *FEV1*, Forced Expiratory Volume in 1 second, the volume of air that can forcibly be blown out in first 1 second, after full inspiration, measured, in centiliter,
+- *region*, M - Murau (plenty of woods, no industries), A - Aichfeld (lots of industries).
+
+# Loading Data
+
+The data is loaded into a data frame and the *region* variable is factorized.
+
+```{r data_load, message=FALSE}
+data  <- read_excel("data/Spirometry.xlsx", sheet = "Tabelle1")
+
+# factorization of the region field
+data$region <- factor(data$region, levels = c('A', 'M'), labels = c('A', 'M'))
+```
+
+Viewing a sample of the data just to get an idea what the data looks like.
+
+```{r}
+data[sample(1:nrow(data), 10, replace = F), ]
+```
+
+There are more variables in the data set than described in the task statement: *year* and *FEV1.VC* are not described. They might be of interest in further investigations.
+
+# Explanatory Data Analysis
+
+Getting the summary of the data set.
+
+```{r}
+# Summary of the non-caterogical inputs
+summary(data[, c('region', 'age', 'height', 'weight', 'FVC', 'FEV1')])
+```
+
+Building the pairwise comparision matrix to understand the distribution of variables
+and their interaction with each other. All data in the plot is 'groupped' by the region.
+
+```{r eda_corr_plot, fig.width=8, fig.height=8, each=FALSE, message=FALSE}
+p <- ggpairs(data, columns = c('region', 'age', 'height', 'weight', 'FVC', 'FEV1'),
+        mapping = aes(color = region), legend = 1,
+        upper = list(continuous = wrap("cor", size = 3)),
+        diag  = list(continuous = wrap("densityDiag", alpha=0.4)),
+        lower = list(continuous = wrap("smooth", alpha = 0.5, size=0.3))) +
+  theme(legend.position = "bottom")
+
+p
+```
+
+There are more respondents for Aichfeld than for Murau (34 vs. 45). The respondents are of different *age*, *height* and *weight* from the regions so we can't directly compare the estimaties of *FVC*, *FEV1* between the regions without taking that difference into account.
+
+It's interesting to note that
+
+- *age* is not distributed normally, there are more young people, considerably more for Aichfeld, it may require some transformation before inputting it into the linear regression,
+- *height*, *weight* are close to the normal distribution,
+- *height*, *weight* are not of a strong linear correlation, they are probably both required for the model,
+- there is a strong linear correlation between *FVC* and *FEV1*, so it might be enough to build a model for only either of them,
+- *FVC* is the right-skewed, *FEV1* is of a bi-modal distribution; therefore, *FVC* may be a better response variable then as it can be easier linearized but the distribution of *FEV1* can indicate there is a statistically significant difference between the regions.
+
+The interim conclusion is we are going to check the regression for both *FVC* and *FEV1*.
+
+Let's look closer at the relations of *age*, *height* and *weight* with *FEV1*, *FVC* because we are going to consider the linear regression based on that. 
+
+Plotting the covariates against *FEV1* and *FVC*. The green line is the linear regression one.
+
+```{r, fig.width=8, fig.height=6, each=FALSE, message=FALSE}
+gs <-list(NA,NA,NA,NA,NA,NA)
+
+i <- 1
+for (rv in c('FVC', 'FEV1')) {
+  for (pv in c('age', 'height', 'weight')) {
+    g <- ggplot(data = data, aes_string(x = pv, y = rv), alpha = 0.7) +
+      geom_point(aes(color = region), size = 0.5) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_smooth()
+    gs[[i]] <- g
+    i <- i + 1
+  }
+}
+
+pm <- ggmatrix(
+  gs, nrow = 2, ncol = 3,
+  xAxisLabels = c('age', 'height', 'weight'),
+  yAxisLabels = c('FVC', 'FEV1'),
+  title = "Pairwise Comparison of Predictors and Responses"
+  )
+
+pm
+```
+
+The relationship between *age* and either of *FVC*, *FEV1* is not linear due to inclusion of considerable number of observations of young people for the Aichfeld region. The data suggests that *FVC*/*FEV1* increases until some age around 22-25 and start decreasing after that.
+
+Looking closer at the age distribution over the regions.
+
+```{r, fig.width=7, fig.height=4}
+ggplot(data, aes(x = age, y = region, color = region), alpha = 0.7) +
+  geom_point() +
+  geom_jitter()
+```
+
+Calculating the number of people at different ages per regions.
+
+```{r}
+data[, c('age', 'region')] %>% 
+  count(age, region) %>% 
+  spread(key = region, value = n, fill = '-') %>% 
+  arrange(age) %>% 
+  print(n = 100)
+```
+
+There are outliers and/or missing data in terms of *age*: the respondents for certain age ranges are presented only for one of regions:
+
+- there is a considerable number of observations (n = 11) with the *age* equal 16 for the Aichfeld region whereas there are no cases for this region complementing the 21-25 age range
+- there are no cases over the age of 49 for Murau which might make the case with the age 56 for Aichfeld.
+
+That disbalance in the data might be due to a sampling error. We should probably remove or transform the worst subset of observations (with *age* == 16) to make the data be more suitable for the linear regression. 
+
+
+Alternatively, we can take the median value for that particular group and replace all the 11 cases with just one.
+
+```{r}
+data %>% filter(age == 16) %>% select(-ID, -year, -FEV1.VC) %>% summary
+```
+
+Let's take the first approach: removing all those observations for the age equal 16. In doing that, we create a new dataset and store it in the **data2** variable.
+
+```{r}
+#data2 <- data %>% filter(age > 16) %>% select(-year, -FEV1.VC)
+
+data2 <- bind_rows(
+  data %>% 
+    select(-year, -FEV1.VC) %>% 
+    filter(age == 16) %>% 
+    summarize(ID=100, age=median(age), 
+              height=median(height), weight=median(weight), 
+              FVC=median(FVC), FEV1=median(FEV1), 
+              region=(data$region)[1]),
+  data %>% 
+    select(-year, -FEV1.VC) %>%
+    filter(age > 16))
+```
+
+The artificial case (which has replaced the 11 real cases on the basis of averaging)
+
+```{r}
+data2 %>% filter(ID == 100)
+```
+
+Checking the relationship between the variables in the new dataset.
+
+```{r, fig.width=8, fig.height=6}
+gs <-list(NA,NA,NA,NA,NA,NA)
+
+i <- 1
+for (rv in c('FVC', 'FEV1')) {
+  for (pv in c('age', 'height', 'weight')) {
+    g <- ggplot(data = data2, aes_string(x = pv, y = rv), alpha = 0.7) +
+      geom_point(aes(color = region)) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_smooth(method = 'loess')
+    gs[[i]] <- g
+    i <- i + 1
+  }
+}
+
+pm <- ggmatrix(
+  gs, nrow = 2, ncol = 3,
+  xAxisLabels = c('age', 'height', 'weight'),
+  yAxisLabels = c('FVC', 'FEV1'),
+  title = "Pairwise Comparison of Predictors and Responses"
+  )
+
+pm
+```
+
+That's a bit better now: *age* does not pull down so much the regression line (against FVC/FEV1) looks more suitable for the linear regression now but it has got worse for *height* and *weight*. It does not look right especially for *weight*, for the case with minimum of weight (the outlier), the case might be a trained person.
+
+```{r}
+data2 %>% filter(weight == 54)
+```
+
+
+Let's remove it and check how the relationship will look without it.
+
+```{r}
+data2 <- data2 %>% filter(weight != 54)
+```
+
+```{r, fig.width=8, fig.height=6}
+gs <-list(NA,NA,NA,NA,NA,NA)
+
+i <- 1
+for (rv in c('FVC', 'FEV1')) {
+  for (pv in c('age', 'height', 'weight')) {
+    g <- ggplot(data = data2, aes_string(x = pv, y = rv), alpha = 0.7) +
+      geom_point(aes(color = region)) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_smooth(method = 'loess')
+    gs[[i]] <- g
+    i <- i + 1
+  }
+}
+
+pm <- ggmatrix(
+  gs, nrow = 2, ncol = 3,
+  xAxisLabels = c('age', 'height', 'weight'),
+  yAxisLabels = c('FVC', 'FEV1'),
+  title = "Pairwise Comparison of Predictors and Responses"
+  )
+
+pm
+```
+
+That's much better for *weight* now, *age* and *height* does not look so good but there is no obvious strategy as in normaling them. Applying the transformation functions (the power one, log) won't help much to linearize the relationship.
+
+```{r}
+data2['age_sqrt']    <- sqrt(data2['age'])
+data2['age_log']     <- log(data2['age'])
+data2['age_inv']     <- 1/data2['age']
+
+data2['height_sqrt'] <- sqrt(data2['height'])
+data2['height_log']     <- log(data2['height'])
+
+data2['FVC_log']     <- log(data2['FVC'])
+```
+
+Let's check what is the relation between the height and weight just to get an idea.
+
+```{r}
+
+ggplot(data2, aes(x = height, y = weight), alpha = 0.7) +
+  geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+  geom_smooth(formula = y ~ x) +
+  geom_point(aes(color = region)) +
+  geom_jitter(aes(color = region))
+```
+
+# Linear Regression
+
+## Tests for LM Assumptions
+
+**Linear relationship**. The relationships between the covariates and either of *FVC*, *FEV1* look to be more or less linear with some curves in the beginnig (judging by the 'lowess' line of the regression). 
+
+**Normality**. The Shapiro-Wilk normality test for *FVC*, *FEV1* does not reject the null hypothesis. 
+
+```{r}
+shapiro.test(data2$FVC)
+shapiro.test(data2$FEV1)
+```
+
+It's interesting to note that log(*FVC*) does not reject the null hypothesis at a higher level of p-value. Can that be a sign of required trnasformation for *FVC*?
+
+```{r}
+shapiro.test(log(data2$FVC))
+```
+
+**Variance**. On the pairwise scatterplots each covariate has values around the regression line more or less evently.
+
+**Multicollinearity** The Pearson's correlation coeffiecient is not large for the pairs of the covariates. We will also try to diagnose violation of this assumption later while analysing the linear regression models.
+
+
+## Choosing a Model for FVC
+
+Building models for FVC.
+
+```{r}
+lm_FVC_1 = lm(data = data2, formula = FVC ~ age + height + weight)
+summary(lm_FVC_1)
+sprintf('AIC=%.1f', AIC(lm_FVC_1))
+```
+
+All predictors are significant except weight. That's interesting because one might expect that the volume and strength of lungs depend on both the height and the weight of a person. 
+
+```{r}
+lm_FVC_1 = lm(data = data2, formula = FVC ~ age + height:weight)
+summary(lm_FVC_1)
+sprintf('AIC=%.1f', AIC(lm_FVC_1))
+```
+
+Let's check the model without the weight.
+
+```{r}
+lm_FVC_2 = lm(data = data2, formula = FVC ~ age + height)
+summary(lm_FVC_2)
+sprintf('AIC=%.1f', AIC(lm_FVC_2))
+```
+
+It has improved a bit: the coefficients are slightly more statistically significant.
+
+Additionally, checking with ANOVA if the weight alone is not statistically significant indeed.
+
+```{r}
+anova(lm_FVC_1)
+```
+
+The interim conclusion is that for *FVC* the regressors are *age* and *height*. But let's check with the interaction between *height* and *weight*.
+
+```{r}
+lm_FVC_3 = lm(data = data2, formula = FVC ~ age + height:weight)
+summary(lm_FVC_3)
+sprintf('AIC=%.1f', AIC(lm_FVC_3))
+```
+
+Ahh, the coefficients are more statistically significant now thought R-squared is much worse. This
+is not probably a suitable model given difficulties with its interpretation.
+
+Checking for log(FVC)
+
+```{r}
+lm_FVC_5 = lm(data = data2, formula = log(FVC) ~ age + height + weight)
+summary(lm_FVC_5)
+sprintf('AIC=%.1f', AIC(lm_FVC_5))
+```
+
+```{r}
+lm_FVC_6 = lm(data = data2, formula = log(FVC) ~ age + height)
+summary(lm_FVC_6)
+sprintf('AIC=%.1f', AIC(lm_FVC_6))
+```
+
+The model with *log(FVC) ~ age + height* provides more statistically significant coefficients with almost the same R-squared comparing to *FVC ~ age + height*. That's probably the most precise linear regresion model for FVC.
+
+Both of them supports that *FVC* increases with *height* and descreases with *age*.
+
+## Choosing a Model for FEV1
+
+Checking the model for FEV1
+
+```{r}
+lm_FEV1_1 = lm(data = data2, formula = FEV1 ~ age + height + weight)
+summary(lm_FEV1_1)
+sprintf('AIC=%.1f', AIC(lm_FEV1_1))
+```
+
+The *weight* coefficient is not statistically significant for FEV1 as well. Trying a model without it.
+
+```{r}
+lm_FEV1_2 = lm(data = data2, formula = FEV1 ~ age + height)
+summary(lm_FEV1_2)
+sprintf('AIC=%.1f', AIC(lm_FEV1_2))
+```
+
+It has improved a bit. Additionally, checking with ANOVA if the weight is not statistically significant indeed.
+
+```{r}
+anova(lm_FEV1_1)
+```
+
+## Main Model
+
+Let's choose the model FVC ~ age + height because it has comparable R-squared and AIC with much more statistically significant intercept.
+
+Looking at the diagnostic plot for it
+
+```{r, fig.height = 6, fig.width = 8}
+autoplot(lm_FVC_2, which = 1:6, ncol = 3, label.size = 3, 
+         title = sprintf('Diagnostic Plots for %s', as.character(formula(lm_FVC_2))), alpha = 0.7)
+```
+
+The Homoscedasticity requirement is fulfilled by judging on the plots "Residuals vs Fitted" and
+"Normal Q-Q", the residuals are located on both sides of the middle line and the Q-Q plot looks
+quite normal (the residuals are lined along the straight line). The Scale-Location plot also
+supports the assumption of constant variance as the residuals appear on it quite random.
+
+There are several leverages but it's hardly possible to do anything with them at the moment without
+strong justification for their transformation or even removal, that kind of justification is
+expected to be discussed with a subject matter expert (a pulmonologist in this case).
+
+# Box-Cox Transformation
+
+## Finding Optimal Lambda
+
+Running the Box-Cox transformation for a range of lambda's to find an optimal value, for *FVC* and *FEV1*.
+
+```{r, fig.width=8, fig.height=4}
+par(mfrow=c(1,2))
+
+bc_runs_FVC <- boxcox(lm_FVC_2,  lambda = seq(-1, 2, 0.01))
+bc_lambda_FVC <- bc_runs_FVC$x[which.max(bc_runs_FVC$y)]
+title(main = 'FVC ~ age + height',  sub = sprintf('max(lambda) = %.2f', bc_lambda_FVC),
+      cex.main = 1)
+
+bc_runs_FEV1 <- boxcox(lm_FEV1_2, lambda = seq(-1, 2, 0.01))
+bc_lambda_FEV1 <- bc_runs_FEV1$x[which.max(bc_runs_FEV1$y)]
+title(main = 'FEV1 ~ age + height', sub = sprintf('max(lambda) = %.2f', bc_lambda_FEV1),
+      cex.main = 1)
+
+par(mfrow=c(1,1))
+```
+
+The Box-Cox transformation suggests using $\lambda=0.11$ for the FVC regression and $\lambda=0.74$ for the FEV1 regression, these are the values when the MLE takes its maximum correspondingly. 
+
+## Models
+
+Let's build the models with the transformation.
+
+```{r}
+lm_FVC_bc = lm(data = data2, formula = FVC^0.11 ~ age + height)
+summary(lm_FVC_bc)
+```
+
+```{r}
+lm_FEV1_bc = lm(data = data2, formula = FEV1^0.74 ~ age + height)
+summary(lm_FEV1_bc)
+```
+
+The model for *FEV1* has got the statistically insignificant intercept, we stop considering it. 
+
+The model for *FVC* has just slightly improved comparing to *FVC ~ age + height* and is almost the same as *log(FVC) ~ age + height* which is expected given the value of lambda: it's closed to zero and the Box-Cox transformation approximates the logarythmic transformation in this case.
+
+The intercept coefficient have improved most of all comparing to *FVC ~ age + height*.
+
+Let's check the diagnostic plots, they are expected to be the same as for *FVC ~ age + height*.
+
+```{r, fig.height=6, fig.width=8}
+#print(sprintf('Diagnostic Plots for %s', as.character(formula(lm_FVC_bc))))
+autoplot(lm_FVC_bc, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7)
+```
+
+Yes, they look the same as the model without the Box-Cox transformation.
+
+## Lambda Significance Test
+
+Conducting the test of significance of the optimal lambda's value against the values of 0, 0.5, 1, 2
+for *FVC^0.11 ~ age + height*.
+
+```{r}
+lm_FVC <- lm(data = data2, formula = FVC ~ age + height, model = FALSE)
+
+# LME for the value of lambda when LME takes the maximum
+bc_lme_FVC <- boxcox(lm_FVC, lambda = bc_lambda_FVC,  plotit = FALSE)$y
+
+bc_runs = list(lambda = c(0, 0.5, 1, 2), y = rep(NA, 4))
+
+i <- 1
+for (lambda in bc_runs[['lambda']]) {
+  bc <- boxcox(lm_FVC, lambda = lambda, plotit = FALSE)
+  i <- i + 1
+  lrt <- -2*(bc$y - bc_lme_FVC)
+  print(sprintf('LRT Statistic for H0: boxcox(lambda=%.2f) == boxcox(lambda=%.2f): %.2f; p-value: %1.5f', 
+                lambda, bc_lambda_FVC, lrt, 1 - pchisq(lrt, 1)))
+  # Calculate the values based on the slide 41
+  bc_runs[['y']][[i]] <- bc$y
+}
+```
+
+The tests do not reject that there is no difference between lamba's as 0, 0.5 or 1 and 0.11. It suggests the Box-Cox transformation is not so much necessary, it echoes with the statistics of the linear regression.
+
+# Generalized Linear Model
+
+## Choosing a Model for FVC
+
+```{r}
+glm_FVC_gs_log <- glm(data = data2, FVC ~ age + height + weight + region, family = gaussian(link=log))
+summary(glm_FVC_gs_log)
+```
+
+```{r}
+glm_FVC_gs_id <- glm(data = data2, FVC ~ age + height + weight + region, family = gaussian(link=identity))
+summary(glm_FVC_gs_id)
+```
+
+```{r}
+glm_FVC_G_log <- glm(data = data2, FVC ~ age + height + weight + region, family = Gamma(link=log))
+summary(glm_FVC_G_log)
+```
+
+For all three models above, neither *weight* nor *region* are significant. Let's re-check it with ANOVA.
+
+```{r}
+anova(glm_FVC_gs_log, test="F")
+```
+
+```{r}
+anova(glm_FVC_G_log, test="F")
+```
+
+No, I think we can exclude both the variables, re-running three cases for FVC without them.
+
+```{r}
+glm_FVC_gs_log <- glm(data = data2, FVC ~ age + height, family = gaussian(link=log))
+summary(glm_FVC_gs_log)
+```
+
+```{r}
+glm_FVC_gs_id <- glm(data = data2, FVC ~ age + height, family = gaussian(link=identity))
+summary(glm_FVC_gs_id)
+```
+
+```{r}
+glm_FVC_G_log <- glm(data = data2, FVC ~ age + height, family = Gamma(link=log))
+summary(glm_FVC_G_log)
+```
+
+Of all three models above the one with Gamma responses with the log link is the best but it's just slightly better than the one with Gaussian responses with the log link. The model with the identity link function is slightly worse than either of with an non-identity link function.
+
+We may conclude that the log link function helps the most, using the Gamma responses (instead of Gaussian) helps a bit but the differences are not so large than we should really reject the simplicity of the linear regression model (with the identity link) at the cost of increasing complexity of interpretation.
+
+Checking the diagnostic plot for the best model (with the Gamma responses):
+
+```{r, fig.height=6, fig.width=8}
+autoplot(glm_FVC_G_log, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7)
+```
+
+The plots are very simular to those for *FVC ~ age + height* so our conclusions about the constant variance stay pretty much the same for the case of the GLM model.
+
+## Choosing a Model for FEV1
+
+Let's check if *region* can turn out to be statistically significant for FEV1 in case of GLM.
+
+```{r}
+glm_FEV1_gs_log = glm(data = data2, FEV1 ~ age + height + region, family = gaussian(link=log))
+summary(glm_FEV1_gs_log)
+```
+
+```{r}
+glm_FEV1_G_log = glm(data = data2, FEV1 ~ age + height + region, family = Gamma(link=log))
+summary(glm_FEV1_G_log)
+```
+
+No, *region* is not statistically significant for FEV1.
+
+However, we have found that *region* is statistically significant for the original data (with the
+heavily skewed data for *age*) but that's expected because all that skewed data is presented for one
+of the regions which seem to cause the significance. Generalizing it over all the age ranges deems
+to be a mistake therefore we reject to accept this statistical significance from the pulmonology
+point of view.
+
+```{r}
+glm_FEV1_gs_log = glm(data = data, FEV1 ~ age + height + region, family = gaussian(link=log))
+summary(glm_FEV1_gs_log)
+```
+
+## Models for Region
+
+Let's try the logistic regression for the region.
+
+```{r glm}
+data['regionM']  <- data['region'] == 'M'
+data2['regionM'] <- data2['region'] == 'M'
+glm_FVC_bin_logit <- glm(data = data2, regionM ~ FVC + age + height + weight, family = binomial(link=logit))
+summary(glm_FVC_bin_logit)
+```
+The data cannot explain the difference between the regions. Again, if we run the model for the original data, only *weight* gets statistical significant but even that's misleading for the reasons discussed before (the skewness of cases towards young age for one of regions).
+
+# Prediction
+
+We choose *FVC ~ age + height* the prediction, the graph also shows the observed values (as the
+black dots).
+ 
+```{r, fig.width=8, fig.height=12}
+data_pred <- tibble(age = seq(16, 60))
+data_pred['height'] <- 180
+data_pred['weight'] <- 80
+data_pred['region'] <- 'M'
+
+models <- list(
+  model = list(glm_FVC_gs_log, glm_FVC_gs_id, glm_FVC_G_log),
+  name =  c('glm_FVC_gs_log', 'glm_FVC_gs_id', 'glm_FVC_G_log'),
+  color = c('red', 'green', 'blue')
+)
+
+g <- ggplot(data = data_pred, aes(x = age), alpha = 0.7) +
+  geom_point(data = data2, aes(x = age, y = FVC))
+
+i <- 1
+for (m in models$model) {
+  
+  pred = predict(m, newdata = data_pred, type="response", se.fit = T)
+  name = models$name[i]
+  data_pred[paste(name, '_fit', sep='')] <- pred$fit
+  data_pred[paste(name, '_ci_upper', sep='')] <- pred$fit + qnorm(0.975)*pred$se.fit
+  data_pred[paste(name, '_ci_lower', sep='')] <- pred$fit - qnorm(0.975)*pred$se.fit
+  
+  color= models$color[i]
+  g <- g + 
+    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_fit', sep='')),      color = color) +
+    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_ci_upper', sep='')), color = color, alpha = 0.3) +
+    geom_line(data = data_pred, aes_string(x = 'age', y = paste(name, '_ci_lower', sep='')), color = color, alpha = 0.3)
+    
+  i <- i + 1
+    
+}
+
+g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)')
+#  scale_color_hue(labels = c('Actual', 'glm_FVC_gs_log', 'glm_FVC_G_log')) +
+#  theme() +
+#  guides()
+```
+
+There is only a slight visual difference if any between all three models for *FVC*.
+
+# Conclusions
+
+1. There is the unbalanced sampling, the data is skewed for *age* and there are less observations for the 'A' region.
+2. There is strong suspicious that one linear model won't fit all ages for FVC as for smaller bodies (younger ages) FVC will be less.
+3. Of all covariates, only *age* and *height* have turned out to be statistically signigicant in all models incl. the GLM ones.
+4. The Box-Cox transformantion and using GLM improve the goodness-of-fit only slightly. It might mean the data is good enough without the transformations i.e. for the linear regression.
+
+# Ideas
+
+1. Though the most promising models have not shown any statistical significance between the regions, one of models has shown it. It might be due to . 
+
+2. Given the non-linearity of FVC ~ age or FEV1 ~ age, one may wanto to consider building different models for two different ranges of the age: up to the 25 years inclusive when there is the positive association, and after the 25 years when there is the negative association.
+
+3. Regress on the volume of body rather than on just the height and/or the weight because the common sense suggests that the lung function depends on the volume of body rather than only on the latter two. A quick check on Google reveals there are works on calculating the volume using the two dimensions e.g. Sendroy Jr, Julius, and Harold A. Collison. "Determination of human body volume from height and weight." Journal of Applied Physiology 21, no. 1 (1966): 167-172.
+
+4. The data seems to have been collected over several years so it might be worth to take the time difference into the account. Checking the number of people at different ages per regions.
+
+```{r}
+data[, c('year', 'region')] %>% 
+  count(year, region) %>% 
+  spread(key = region, value = n, fill = '-') %>% 
+  arrange(year) %>% 
+  print(n = 100)
+```
+
+# Appendix A. Technical Details of Report
+
+This version of the report was built with the following runtime environment:
+
+```{r}
+devtools::session_info()
+```
+
+
