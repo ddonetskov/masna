@@ -63,11 +63,11 @@ library(ggfortify)
 # knitr::opts_chunk$set(dev="pdf")
 
 # more optimized svg, ligher in size, https://cran.r-project.org/web/packages/svglite/index.html
-#library(svglite)
-#knitr::opts_chunk$set(
-#  dev = "svglite",
-#  fig.ext = ".svg"
-#)
+library(svglite)
+knitr::opts_chunk$set(
+  dev = "svglite",
+  fig.ext = ".svg"
+)
 ```
 
 # Research Question
@@ -245,7 +245,7 @@ pm <- ggmatrix(
   gs, nrow = 2, ncol = 3,
   xAxisLabels = c('age', 'height', 'weight'),
   yAxisLabels = c('FVC', 'FEV1'),
-  title = "Pairwise Comparison of Predictors and Responses"
+  title = "Pairwise Comparison of Predictors and Responses\n(with the correction for age)"
   )
 
 pm
@@ -283,7 +283,7 @@ pm <- ggmatrix(
   gs, nrow = 2, ncol = 3,
   xAxisLabels = c('age', 'height', 'weight'),
   yAxisLabels = c('FVC', 'FEV1'),
-  title = "Pairwise Comparison of Predictors and Responses"
+  title = "Pairwise Comparison of Predictors and Responses\n(with the correction for age and without one outlier for weight)"
   )
 
 pm
@@ -304,7 +304,7 @@ data2['FVC_log']     <- log(data2['FVC'])
 
 Let's check what is the relation between the height and weight just to get an idea.
 
-```{r}
+```{r, fig.width=6, fig.height=4}
 
 ggplot(data2, aes(x = height, y = weight), alpha = 0.7) +
   geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
@@ -623,7 +623,7 @@ The data cannot explain the difference between the regions. Again, if we run the
 
 # Prediction
 
-We choose *FVC ~ age + height* the prediction, the graph also shows the observed values (as the
+We choose *FVC ~ age + height* for the prediction, the graph also shows the observed values (as the
 black dots).
  
 ```{r, fig.width=8, fig.height=12}
@@ -638,8 +638,8 @@ models <- list(
   color = c('red', 'green', 'blue')
 )
 
-g <- ggplot(data = data_pred, aes(x = age), alpha = 0.7) +
-  geom_point(data = data2, aes(x = age, y = FVC))
+g <- ggplot(data = data_pred, aes(x = age)) +
+  geom_point(data = data2, aes(x = age, y = FVC), alpha = 0.5)
 
 i <- 1
 for (m in models$model) {
@@ -660,20 +660,21 @@ for (m in models$model) {
     
 }
 
-g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)') +
-  scale_color_hue(labels = models$name) +
-  theme(legend.position = 'right')
+g <- g + labs(title = 'Prediction for FVC on age', y = 'FVC (predicted)')
+#g + scale_color_hue(labels = models$name) + theme(legend.position = 'right')
+
+g
 
 ```
 
-There is only a slight visual difference if any between all three models for *FVC*.
+There is only a slight visual difference if any between all three models for *FVC*, the GLM models with the log link functions are closer to each other, the model with the identity link function (with the green lines) tends to predict higher values of *FVC* comparing to the formers.
 
 # Conclusions
 
 1. The population have probably been sampled wrongly, the data is skewed for *age* and there are less observations for the 'A' region.
 2. There is strong suspicion that a single linear model won't fit all ages for *FVC* or *FEV1* as for younger ages (smaller bodies) FVC will naturallyu be less.
 3. Of all covariates, only *age* and *height* have turned out to be statistically significant in all models incl. the GLM ones.
-4. The Box-Cox transformation and usage of GLM improves the goodness-of-fit only slightly. It might mean the data is good enough without the transformations i.e. for the linear regression (the identity link).
+4. The Box-Cox transformation and usage of GLM improves the goodness-of-fit only slightly. It might mean the data is good enough without the transformations i.e. for the linear regression (the identity link). However, the project still learns that GLM allows building better models comparing to the linear regression.
 
 # Ideas
 
