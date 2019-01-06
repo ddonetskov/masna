@@ -19,7 +19,7 @@ output:
       collapsed: false
     # others
     keep_md: TRUE
-    theme: cosmo   # https://bootswatch.com/3/
+    theme: spacelab   # https://bootswatch.com/3/
   pdf_document:
     #geometry: "papersize={210mm,5000mm},left=3cm,right=3cm,top=2cm,bottom=2cm"
     # figure options
@@ -670,10 +670,10 @@ There is only a slight visual difference if any between all three models for *FV
 
 # Conclusions
 
-1. There is the unbalanced sampling, the data is skewed for *age* and there are less observations for the 'A' region.
-2. There is strong suspicious that one linear model won't fit all ages for FVC as for smaller bodies (younger ages) FVC will be less.
-3. Of all covariates, only *age* and *height* have turned out to be statistically signigicant in all models incl. the GLM ones.
-4. The Box-Cox transformantion and using GLM improve the goodness-of-fit only slightly. It might mean the data is good enough without the transformations i.e. for the linear regression.
+1. The population have probably been sampled wrongly, the data is skewed for *age* and there are less observations for the 'A' region.
+2. There is strong suspicion that a single linear model won't fit all ages for *FVC* or *FEV1* as for younger ages (smaller bodies) FVC will naturallyu be less.
+3. Of all covariates, only *age* and *height* have turned out to be statistically significant in all models incl. the GLM ones.
+4. The Box-Cox transformation and usage of GLM improves the goodness-of-fit only slightly. It might mean the data is good enough without the transformations i.e. for the linear regression (the identity link).
 
 # Ideas
 
