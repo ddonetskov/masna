@@ -7,10 +7,10 @@ output:
   html_document:
     # figure options
     dev: png
-    fig_height: 7
-    fig_width: 7
-    #fig_retina: 2
     fig.align: center
+    fig_width: 7
+    fig_height: 4
+    #fig_retina: 2
     # TOC options
     toc: TRUE
     number_sections: true
@@ -44,7 +44,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(fig.align = "center")
 knitr::opts_chunk$set(comment = NA)
 knitr::opts_chunk$set(dpi = 300)
 
@@ -149,7 +149,7 @@ for (rv in c('FVC', 'FEV1')) {
   for (pv in c('age', 'height', 'weight')) {
     g <- ggplot(data = data, aes_string(x = pv, y = rv), alpha = 0.7) +
       geom_point(aes(color = region), size = 0.5) +
-      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'light green', se = FALSE) +
       geom_smooth()
     gs[[i]] <- g
     i <- i + 1
@@ -170,10 +170,10 @@ The relationship between *age* and either of *FVC*, *FEV1* is not linear due to 
 
 Looking closer at the age distribution over the regions.
 
-```{r, fig.width=7, fig.height=4}
+```{r, fig.width=7, fig.height=3}
 ggplot(data, aes(x = age, y = region, color = region), alpha = 0.7) +
-  geom_point() +
-  geom_jitter()
+  geom_jitter(size = 0.7) +
+  theme_bw()
 ```
 
 Calculating the number of people at different ages per regions.
@@ -233,8 +233,8 @@ i <- 1
 for (rv in c('FVC', 'FEV1')) {
   for (pv in c('age', 'height', 'weight')) {
     g <- ggplot(data = data2, aes_string(x = pv, y = rv), alpha = 0.7) +
-      geom_point(aes(color = region)) +
-      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_point(aes(color = region), size = 0.5) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'light green', se = FALSE) +
       geom_smooth(method = 'loess')
     gs[[i]] <- g
     i <- i + 1
@@ -251,7 +251,7 @@ pm <- ggmatrix(
 pm
 ```
 
-That's a bit better now: *age* does not pull down so much the regression line (against FVC/FEV1) looks more suitable for the linear regression now but it has got worse for *height* and *weight*. It does not look right especially for *weight*, for the case with minimum of weight (the outlier), the case might be a trained person.
+That's a bit better now: *age* does not pull down so much the regression line (against *FVC*, *FEV1*) looks more suitable for the linear regression now but it has got worse for *height* and *weight*. It does not look right especially for *weight*, for the case with minimum of weight (the outlier), the case might be a trained person.
 
 ```{r}
 data2 %>% filter(weight == 54)
@@ -271,8 +271,8 @@ i <- 1
 for (rv in c('FVC', 'FEV1')) {
   for (pv in c('age', 'height', 'weight')) {
     g <- ggplot(data = data2, aes_string(x = pv, y = rv), alpha = 0.7) +
-      geom_point(aes(color = region)) +
-      geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
+      geom_point(aes(color = region), size = 0.5) +
+      geom_smooth(method = 'lm', formula = y ~ x, color = 'light green', se = FALSE) +
       geom_smooth(method = 'loess')
     gs[[i]] <- g
     i <- i + 1
@@ -304,13 +304,12 @@ data2['FVC_log']     <- log(data2['FVC'])
 
 Let's check what is the relation between the height and weight just to get an idea.
 
-```{r, fig.width=6, fig.height=4}
+```{r}
 
 ggplot(data2, aes(x = height, y = weight), alpha = 0.7) +
-  geom_smooth(method = 'lm', formula = y ~ x, color = 'green', se = FALSE) +
-  geom_smooth(formula = y ~ x) +
-  geom_point(aes(color = region)) +
-  geom_jitter(aes(color = region))
+  geom_smooth(method = 'lm', formula = y ~ x, color = 'light green', se = FALSE) +
+  geom_smooth(method = "loess", formula = y ~ x) +
+  geom_point(aes(color = region), size = 1)
 ```
 
 # Linear Regression
@@ -432,7 +431,7 @@ Looking at the diagnostic plot for it
 
 ```{r, fig.height = 6, fig.width = 8}
 autoplot(lm_FVC_2, which = 1:6, ncol = 3, label.size = 3, 
-         title = sprintf('Diagnostic Plots for %s', as.character(formula(lm_FVC_2))), alpha = 0.7)
+         title = sprintf('Diagnostic Plots for %s', as.character(formula(lm_FVC_2))), alpha = 0.7, size=0.7)
 ```
 
 The Homoscedasticity requirement is fulfilled by judging on the plots "Residuals vs Fitted" and
@@ -492,7 +491,7 @@ Let's check the diagnostic plots, they are expected to be the same as for *FVC ~
 
 ```{r, fig.height=6, fig.width=8}
 #print(sprintf('Diagnostic Plots for %s', as.character(formula(lm_FVC_bc))))
-autoplot(lm_FVC_bc, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7)
+autoplot(lm_FVC_bc, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7, size=0.7)
 ```
 
 Yes, they look the same as the model without the Box-Cox transformation.
@@ -577,7 +576,7 @@ We may conclude that the log link function helps the most, using the Gamma respo
 Checking the diagnostic plot for the best model (with the Gamma responses):
 
 ```{r, fig.height=6, fig.width=8}
-autoplot(glm_FVC_G_log, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7)
+autoplot(glm_FVC_G_log, which = 1:6, ncol = 3, label.size = 3, alpha = 0.7, size=0.7)
 ```
 
 The plots are very simular to those for *FVC ~ age + height* so our conclusions about the constant variance stay pretty much the same for the case of the GLM model.
@@ -684,7 +683,7 @@ There is only a slight visual difference if any between all three models for *FV
 
 3. Regress on the volume of body rather than on just the height and/or the weight because the common sense suggests that the lung function depends on the volume of body rather than only on the latter two. A quick check on Google reveals there are works on calculating the volume using the two dimensions e.g. Sendroy Jr, Julius, and Harold A. Collison. "Determination of human body volume from height and weight." Journal of Applied Physiology 21, no. 1 (1966): 167-172.
 
-4. The data seems to have been collected over several years so it might be worth to take the time difference into the account. Checking the number of people at different ages per regions.
+4. The data seems to have been collected over several years so it might be worth to take the time difference into the account. Checking the number of cases for different years per region.
 
 ```{r}
 data[, c('year', 'region')] %>% 
