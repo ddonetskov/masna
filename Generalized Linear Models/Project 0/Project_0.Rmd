@@ -693,7 +693,7 @@ There is only a slight visual difference between all three models for *FVC*, the
 
 # Conclusions
 
-1. The population have probably been sampled wrongly because *age* is heavily skewed for Aichfeld, there are less observations for Aichfeld especially after after the correction of the *age* skewness.
+1. The population have probably been sampled wrongly because *age* is heavily skewed for Aichfeld, there are fewer observations for Aichfeld especially after the correction of the *age* skewness.
 2. There is strong suspicion that a single linear model won't fit all age ranges for either *FVC* or *FEV1* as for younger age ranges (which means smaller bodies with smaller lungs) *FVC*, *FEV1* will naturally be lower.
 3. Of all covariates, only *age* and *height* have turned out to be statistically significant in all models incl. the GLM ones.
 4. The Box-Cox transformation and usage of GLM improves the goodness-of-fit only slightly. It might mean the data is already good enough for the linear regression without the transformations. However, we still learn from the project that GLM allows building more precise models comparing to the linear regression.
