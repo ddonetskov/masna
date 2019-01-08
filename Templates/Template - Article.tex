@@ -6,11 +6,15 @@
 
 % ------------------------------------------------------------------------------
 % Template Change History
+% 2019-01-08   1.2   Added the listings templates for Python and Stata
 % 2018-09-22   1.1   Added the support of biber
 % 2018-05-19   1.0   Initial Version
 % ------------------------------------------------------------------------------
 
 \documentclass[a4paper,11pt]{article}
+
+% this is required to avoid the conflict on loading xcolor with listing-stata
+\PassOptionsToPackage{dvipsnames,svgnames,table}{xcolor}
 
 \usepackage{geometry}
 \geometry{left=20.00mm, right=15.00mm, top=20.00mm, bottom=20.00mm}
@@ -25,6 +29,22 @@
 \title{\vspace{-1.5cm}This is a Title}
 \author{Dmitry Donetskov (ddonetskov@gmail.com)}
 \date{\today}
+
+% replacing 'Chapter N' with 'N <Chapter Name>'
+%https://tex.stackexchange.com/questions/284893/remove-chapter-from-a-book-text
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+  {\Huge\bfseries}
+  {}
+  {0pt}
+  {\thechapter.\ }
+
+\titleformat{name=\chapter,numberless}[display]
+  {\Huge\bfseries}
+  {}
+  {0pt}
+  {}
 
 % ------------------------------------------------------------------------------
 % LUA
@@ -96,17 +116,6 @@
 \setmonofont{Courier New}
 
 % ------------------------------------------------------------------------------
-% Listing
-% ------------------------------------------------------------------------------
-
-\usepackage{listings}
-\lstset{language=Python}
-\lstset{frame=lines}
-%\lstset{caption={Insert code directly in your document}}
-\lstset{label={lst:code_direct}}
-\lstset{basicstyle=\footnotesize}
-
-% ------------------------------------------------------------------------------
 % Bibliography 
 % http://ctan.altspu.ru/macros/latex/exptl/biblatex-contrib/biblatex-gost/doc/biblatex-gost.pdf
 % ------------------------------------------------------------------------------
@@ -152,7 +161,7 @@ maxcitenames=3]{biblatex}
 \usepackage{bookmark}
 
 % hyperref usually needs to be loaded last
-\usepackage[dvipsnames]{xcolor}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{url}
 
@@ -165,6 +174,47 @@ maxcitenames=3]{biblatex}
 }
 
 \urlstyle{same}
+
+% ------------------------------------------------------------------------------
+% Listing
+% ------------------------------------------------------------------------------
+
+% downloaded from https://gist.github.com/mcaceresb/b40d6059cf66cc73423f4ddf3f72acda
+%\input{listings-stata.tex}
+
+\usepackage{listings}
+
+\lstdefinestyle{python_custom}{
+  language          = Python,
+  belowcaptionskip  = 1\baselineskip,
+  frame             = L,
+  xleftmargin       = \parindent,
+  basicstyle        = \setmonofont{DejaVu Sans Mono}\footnotesize\ttfamily,
+  tabsize           = 4,      % Tab size
+  showstringspaces  = false,  % Don't underline spaces in strings
+  showspaces        = false,  % Don't underline spaces
+  breaklines        = true,   % Automatic line breaking
+  breakatwhitespace = true,   % Breaks only at white space.
+  lineskip          = 1.5pt,  % Sparing between lines of code
+  commentstyle      = \color{purple!40!black}\itshape \let\textcolor\textcolordummy
+}
+
+\lstdefinestyle{stata_custom}{
+%  language          = stata,
+  belowcaptionskip  = 1\baselineskip,
+  frame             = L,
+  xleftmargin       = \parindent,
+  basicstyle        = \setmonofont{DejaVu Sans Mono}\footnotesize\ttfamily,
+  tabsize           = 4,      % Tab size
+  showstringspaces  = false,  % Don't underline spaces in strings
+  showspaces        = false,  % Don't underline spaces
+  breaklines        = true,   % Automatic line breaking
+  breakatwhitespace = true,   % Breaks only at white space.
+  lineskip          = 1.5pt,  % Sparing between lines of code
+  commentstyle      = \color{black!50}\itshape \let\textcolor\textcolordummy
+}
+
+% \lstset{escapechar=@,style=stat_custom}
 
 % ------------------------------------------------------------------------------
 % Document
@@ -185,6 +235,16 @@ TBC
 \section{Section 2}
 
 \section{Section 3}
+
+\appendix
+
+\section{Examples of Using \LaTeX}
+
+\subsection{Enumeration with Decreased Intervals}
+
+\subsection{Tables Scaled to Fit Page}
+
+\subsection{Images Side by Side}
 
 % ------------------------------------------------------------------------------
 % Bibliography
