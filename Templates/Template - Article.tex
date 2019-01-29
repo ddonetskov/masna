@@ -6,6 +6,7 @@
 
 % ------------------------------------------------------------------------------
 % Template Change History
+% 2019-01-24   1.3   Added more packages for tables
 % 2019-01-08   1.2   Added the listings templates for Python and Stata
 % 2018-09-22   1.1   Added the support of biber
 % 2018-05-19   1.0   Initial Version
@@ -28,6 +29,7 @@
 
 \title{\vspace{-1.5cm}This is a Title}
 \author{Dmitry Donetskov (ddonetskov@gmail.com)}
+%\date{\vspace{-5ex}}            % rought equavalent of no date
 \date{\today}
 
 % replacing 'Chapter N' with 'N <Chapter Name>'
@@ -65,11 +67,35 @@
 \usepackage{subcaption}         % subcaptions in figures
 
 % ------------------------------------------------------------------------------
-% Tables
+% Lists
 % ------------------------------------------------------------------------------
 
+\usepackage{enumitem}           % to regulate space between items
+
+% taken from https://tex.stackexchange.com/questions/300340/topsep-itemsep-partopsep-and-parsep-what-does-each-of-them-mean-and-wha
+%\topsep    = vertical space added above and below the list.
+%\partopsep = vertical space added above and below the list, but only if the list starts a new paragraph.
+%\itemsep   = vertical space added after each item in the list.
+%\parsep    = vertical space added after each paragraph in the list.
+\setlist[itemize]{topsep=2pt,partopsep=2pt,itemsep=2pt,parsep=0pt}   
+
+% ------------------------------------------------------------------------------
+% Tables
+% References
+% - useful list of various environments: https://tex.stackexchange.com/questions/214840/array-table-tabular-tabularx-longtable-supertabular-longtabu
+% 
+% ------------------------------------------------------------------------------
+
+\usepackage{array}              % this is to automatically break longer lines of text within cells,
+                                % define fixed-width columns
+\usepackage{booktabs}           % provides commands to produce heavier lines as table frame
+                                % (\toprule, \bottomrule) and lighter lines within a table
+                                % (\midrule).
 \usepackage{multirow}           % spanning columns across multiple rows
 \usepackage{makecell}           % allows different formats inside cells
+
+\renewcommand\arraystretch{1.5} % “stretches” the table vertically, increases space between rows 
+% \renewcommand{\tabcolsep}{3pt}  % adjust the space between columns
 
 \renewcommand\theadalign{bc}
 \renewcommand\theadfont{\bfseries}
@@ -113,7 +139,17 @@
 % ------------------------------------------------------------------------------
 
 \usepackage{fontspec}           % required to load Open Type, True Type fonts
+
+% the next three fonts may be required for the Cyrillic support
+%\setmainfont{CMU Serif}
+%\setsansfont{CMU Sans Serif}
+%\setmonofont{CMU Typewriter Text}
+
+%\setmainfont{Linux Libertine O} % Libertine covers Latin, Hebrew, Greek, and Russian
 \setmonofont{Courier New}
+
+\usepackage{euscript}	        % Шрифт Евклид
+\usepackage{mathrsfs}           % Красивый матшрифт
 
 % ------------------------------------------------------------------------------
 % Bibliography 
