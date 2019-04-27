@@ -1,0 +1,80 @@
+\DeclareRobustCommand{\todo}{\textcolor{black}}       % решаем проблему превращения названия цвета в результате \MakeUppercase, http://tex.stackexchange.com/a/187930, \DeclareRobustCommand protects \todo from expanding inside \MakeUppercase
+
+% ------------------------------------------------------------------------------
+% Text
+% ------------------------------------------------------------------------------
+
+% Выставляем значения полей (ГОСТ 7.0.11-2011, 5.3.7)
+\geometry{a4paper,top=2cm,bottom=2cm,left=2.5cm,right=1.5cm} % nofoot, nomarginpar, heightrounded, showframe
+\setlength{\topskip}{0pt}   %размер дополнительного верхнего поля
+
+\OnehalfSpacing*    % Полуторный интервал
+
+% ------------------------------------------------------------------------------
+% TOC, Headers
+% ------------------------------------------------------------------------------
+
+% отбивка точками до номера страницы начала главы/раздела
+\renewcommand{\cftchapterdotsep}{\cftdotsep}
+
+% Оформление заголовков приложений ближе к ГОСТ:
+\setlength{\abovecaptionskip}{0pt}   % Отбивка над подписью
+\setlength{\belowcaptionskip}{0pt}   % Отбивка под подписью
+\setlength{\midchapskip}{20pt}
+\renewcommand*{\afterchapternum}{\par\nobreak\vskip \midchapskip}
+
+\captionwidth{\linewidth}
+\normalcaptionwidth
+
+% colontiles
+\makeevenhead{plain}{}{\thepage}{}
+\makeoddhead{plain}{}{\thepage}{}
+\makeevenfoot{plain}{}{}{}
+\makeoddfoot{plain}{}{}{}
+\pagestyle{plain}
+
+% ------------------------------------------------------------------------------
+% Tables
+% ------------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------------
+% Figures
+% ------------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------------
+% Links
+% ------------------------------------------------------------------------------
+
+\ifluatex
+    \hypersetup{
+        unicode,                % Unicode encoded PDF strings
+    }
+\fi
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=ForestGreen,
+    filecolor=red,      
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+% Link colors. Latex color definitions: http://latexcolor.com/
+\definecolor{linkcolor}{rgb}{0.9,0,0}
+\definecolor{citecolor}{rgb}{0,0.6,0}
+\definecolor{urlcolor}{rgb}{0,0,1}
+%\definecolor{linkcolor}{rgb}{0,0,0} %black
+%\definecolor{citecolor}{rgb}{0,0,0} %black
+%\definecolor{urlcolor}{rgb}{0,0,0} %black
+
+% ------------------------------------------------------------------------------
+% Lists
+% ------------------------------------------------------------------------------
+
+% Единый стиль для всех списков (пакет enumitem), без дополнительных интервалов.
+% Каждый пункт, подпункт и перечисление записывают с абзацного отступа (ГОСТ 2.105-95, 4.1.8)
+%\setlist{nosep,%                                    
+%  labelindent=\parindent,leftmargin=*%
+%}

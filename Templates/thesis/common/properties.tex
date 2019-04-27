@@ -1,0 +1,94 @@
+% Document properties
+
+% ------------------------------------------------------------------------------
+% Work name and its properties
+% ------------------------------------------------------------------------------
+
+\newcommand{\thesisTitle}              % Диссертация, название
+{\todo{Thesis Title}}
+\newcommand{\thesisSpecialtyNumber}    % Диссертация, специальность, номер
+{\todo{01.04.02}}
+\newcommand{\thesisSpecialtyTitle}     % 
+{\todo{Applied Mathematics and Informatics}}
+\newcommand{\thesisCity}               % City
+{\todo{Moscow}}
+\newcommand{\thesisYear}               % Year
+{\todo{2019}}
+
+% ------------------------------------------------------------------------------
+% Author Name
+% ------------------------------------------------------------------------------
+
+\newcommand{\thesisAuthorLastName}{\todo{LastName}}
+\newcommand{\thesisAuthorOtherNames}{\todo{FirstName}}
+\newcommand{\thesisAuthorInitials}{\todo{F.\,L.}}
+
+\newcommand{\thesisAuthor}             % Диссертация, ФИО автора
+{%
+    \texorpdfstring{% \texorpdfstring takes two arguments and uses the first 
+    %for (La)TeX and the second for pdf
+        \thesisAuthorLastName~\thesisAuthorOtherNames% так будет отображаться 
+        %на титульном листе или в тексте, где будет использоваться переменная
+    }{%
+        \thesisAuthorLastName, \thesisAuthorOtherNames% эта запись для свойств 
+        %pdf-файла. В таком виде, если pdf будет обработан программами для 
+        %сбора 
+        %библиографических сведений, будет правильно представлена фамилия.
+    }
+}
+
+\newcommand{\thesisAuthorFL}             % First Name, Last Name
+{%
+    \texorpdfstring{% \texorpdfstring takes two arguments and uses the first 
+    %for (La)TeX and the second for pdf
+        \thesisAuthorOtherNames~\thesisAuthorLastName% так будет отображаться 
+        %на титульном листе или в тексте, где будет использоваться переменная
+    }{%
+        \thesisAuthorOtherNames~\thesisAuthorLastName% эта запись для свойств 
+        %pdf-файла. В таком виде, если pdf будет обработан программами для 
+        %сбора 
+        %библиографических сведений, будет правильно представлена фамилия.
+    }
+}
+
+\newcommand{\thesisAuthorShort}        % Диссертация, ФИО автора инициалами
+{\thesisAuthorInitials~\thesisAuthorLastName}
+
+% ------------------------------------------------------------------------------
+% Organization
+% ------------------------------------------------------------------------------
+
+\newcommand{\thesisOrganization}
+{\todo{Federal State Autonomous Educational Institution of Higher 
+Education\newline National Research University Higher School of Economics}}
+\newcommand{\thesisOrganizationShort}{\todo{HSE}}
+
+% ------------------------------------------------------------------------------
+% Supervisors
+% ------------------------------------------------------------------------------
+
+%% \newcommand{\supervisorDead}{}           % Рисовать рамку вокруг фамилии
+\newcommand{\supervisorFio}                 % Научный руководитель, ФИО
+{\todo{Фамилия Имя Отчество}}
+\newcommand{\supervisorRegalia}             % Научный руководитель, регалии
+{\todo{уч. степень, уч. звание}} 
+\newcommand{\supervisorFioShort}            % Научный руководитель, ФИО
+{\todo{И.\,О.~Фамилия}}
+\newcommand{\supervisorRegaliaShort}        % Научный руководитель, регалии
+{\todo{уч.~ст.,~уч.~зв.}}
+
+%% \newcommand{\supervisorTwoDead}{}        % Рисовать рамку вокруг фамилии
+%% \newcommand{\supervisorTwoFio}           % Второй научный руководитель, ФИО
+%% {\todo{Фамилия Имя Отчество}}
+%% \newcommand{\supervisorTwoRegalia}       % Второй научный руководитель, 
+%%%регалии
+%% {\todo{уч. степень, уч. звание}}
+%% \newcommand{\supervisorTwoFioShort}      % Второй научный руководитель, ФИО
+%% {\todo{И.\,О.~Фамилия}}
+%% \newcommand{\supervisorTwoRegaliaShort}  % Второй научный руководитель, 
+%%%регалии
+%% {\todo{уч.~ст.,~уч.~зв.}}
+
+% To avoid conflict with beamer class use \providecommand
+\providecommand{\keywords}%                 % keyword for PDF metadata
+{}

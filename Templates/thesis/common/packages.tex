@@ -1,0 +1,146 @@
+\usepackage{etoolbox}       % for advanced tests
+\providebool{presentation}
+
+%\usepackage{ltxcmds}
+\usepackage{ifluatex}
+
+% ------------------------------------------------------------------------------
+% Geometry
+% ------------------------------------------------------------------------------
+
+\usepackage{geometry}           % for specifying the margins (later)
+
+% ------------------------------------------------------------------------------
+% Formatting
+% ------------------------------------------------------------------------------
+
+\ifnumequal{\number\value{draft}}{0}{  % if this is not the draft mode
+%  \usepackage[final, shrink=45]{microtype}
+}{}
+%\usepackage{microtype}          % this is to get rid of 'Overfull \hbox...'
+
+%\usepackage{indentfirst}        % Красная строка
+\usepackage{soulutf8}           % support of underscore
+
+% Page No above the page numbers in Contents
+% http://tex.stackexchange.com/a/306950
+\usepackage{afterpage}
+
+% ------------------------------------------------------------------------------
+% Math
+% ------------------------------------------------------------------------------
+
+\usepackage{amsthm,amsmath,amscd}       % AMS additions
+\usepackage{amsfonts,amssymb}           % AMS additions
+\usepackage{mathtools}          % adds multlined
+
+\usepackage{cancel}             % four different modes of striking through
+\usepackage{dsfont}
+\usepackage{icomma}             % Smart comma: $0,2$ --- число, $0, 2$ --- 
+
+\usepackage{physics}            % implementation of \abs and \norm
+\usepackage{xfrac}              % a better maintained replacement for nicefrac
+
+\DeclareMathOperator*{\D}{\mathbb{D}}   % the dispersion symbol
+\DeclareMathOperator*{\E}{\mathbb{E}}   % the expectation symbol
+
+\DeclareMathOperator*{\N}{\mathbb{N}}   % the set of natural numbers
+\DeclareMathOperator*{\R}{\mathbb{R}}   % the set of real numbers
+\DeclareMathOperator*{\Z}{\mathbb{Z}}   % the set of integers
+
+% e = 2.71...
+\newcommand{\e}{\mathrm{e}}
+
+% sign of independence
+% \vDash can also be used instead of \models
+% \raisebox{}{} is required for vertical alignment
+\newcommand{\independent}{
+  \raisebox{0.05em}{\rotatebox[origin=c]{90}{$\models$}}
+}
+
+% ------------------------------------------------------------------------------
+% Fonts settings
+% ------------------------------------------------------------------------------
+
+% settings for the font size 14 pt
+% should be called before fontspec or polyglossia
+%\newlength{\curtextsize}
+%\newlength{\bigtextsize}
+%\setlength{\bigtextsize}{13.9pt}
+
+%\makeatletter
+%\show\f@size                                       % неплохо для отслеживания, 
+%%но вызывает стопорение процесса, если документ компилируется без команды  
+%%-interaction=nonstopmode
+%\setlength{\curtextsize}{\f@size pt}
+%\makeatother
+
+%\usepackage{polyglossia}        % multilanguage support, it loads fontspec also
+
+% ------------------------------------------------------------------------------
+% Lists
+% ------------------------------------------------------------------------------
+
+\usepackage{enumitem}           % to regulate space between items
+
+% taken from https://tex.stackexchange.com/questions/300340/topsep-itemsep-partopsep-and-parsep-what-does-each-of-them-mean-and-wha
+% \topsep    = vertical space added above and below the list.
+% \partopsep = vertical space added above and below the list, but only if the 
+% list starts a new paragraph.
+% \itemsep   = vertical space added after each item in the list.
+% \parsep    = vertical space added after each paragraph in the list.
+\setlist[itemize]{topsep=2pt,partopsep=2pt,itemsep=2pt,parsep=0pt}
+
+% ------------------------------------------------------------------------------
+% Tables
+% References
+% - useful list of various environments: 
+%https://tex.stackexchange.com/questions/214840/array-table-tabular-tabularx-longtable-supertabular-longtabu
+% 
+% ------------------------------------------------------------------------------
+
+\usepackage{array}              % this is to automatically break longer lines 
+%of text within cells,
+% define fixed-width columns
+\usepackage{booktabs}           % provides commands to produce heavier lines as 
+%table frame
+% (\toprule, \bottomrule) and lighter lines within a table
+% (\midrule).
+\usepackage{multirow}           % spanning columns across multiple rows
+\usepackage{makecell}           % allows different formats inside cells
+
+\renewcommand\arraystretch{1.5} % “stretches” the table vertically, increases 
+%space between rows 
+% \renewcommand{\tabcolsep}{3pt}  % adjust the space between columns
+
+\renewcommand\theadalign{bc}
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[4pt]}
+\renewcommand\cellgape{\Gape[4pt]}
+
+\usepackage{longtable,ltcaption} % длинные таблицы
+\usepackage{tabu, tabulary}      % таблицы с автоматически подбирающейся шириной столбцов
+
+% ------------------------------------------------------------------------------
+% Graphics
+% ------------------------------------------------------------------------------
+
+\usepackage{graphicx}
+
+% ------------------------------------------------------------------------------
+% Links
+% ------------------------------------------------------------------------------
+
+\usepackage{bookmark}
+
+% hyperref usually needs to be loaded last
+\usepackage[dvipsnames, table, hyperref]{xcolor}    % Совместимо с tikz
+\usepackage{url}
+
+% ------------------------------------------------------------------------------
+% Counters
+% ------------------------------------------------------------------------------
+
+\usepackage[figure,table]{totalcount}               % Счётчик рисунков и таблиц
+\usepackage{totcount}                               % Пакет создания счётчиков на основе последнего номера подсчитываемого элемента (может требовать дважды компилировать документ)
+\usepackage{totpages}                               % Счётчик страниц, совместимый с hyperref (ссылается на номер последней страницы). Желательно ставить последним пакетом в преамбуле

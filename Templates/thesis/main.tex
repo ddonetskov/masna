@@ -1,0 +1,61 @@
+% !TEX TS-program = lualatex
+
+% required for TexXstudio, an alternative is to change the default bibliography tool 
+% in TeXstudio settings (Options > Configure TeXstudio > Build > Default Bibliography Tool)
+% !BIB TS-program = biber
+
+% !TeX spellcheck = en_GB
+
+% ------------------------------------------------------------------------------
+% Description: the template was designed for lualatex
+% ------------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------------
+% Class Properties
+% ------------------------------------------------------------------------------
+% Format options are set according to (ГОСТ Р 7.0.11-2011, 5.3.6)
+\documentclass[a4paper,14pt,oneside,openany]{memoir}
+
+% ------------------------------------------------------------------------------
+% Common parts
+% ------------------------------------------------------------------------------
+\input{common/config}           % configuration
+\input{common/packages}         % packages
+\input{common/fonts}            % fonts
+\input{common/style}            % stilistic parameters
+\input{common/properties}       % properties
+\input{common/biblatex}         % to support the bibliography with biblatex/biber
+\input{common/diagnostics}      % activates some diagnostics
+
+% ------------------------------------------------------------------------------
+% Document
+% After the full compilation (all parts) with \include, 
+% it's possible to use \includeonly
+% ------------------------------------------------------------------------------
+
+%\includeonly{parts/01_title}
+
+\begin{document}
+    
+% The structure according to the requirements)
+\include{parts/01_title}           % The title page
+\include{parts/02_contents}        % Contents
+\include{parts/05_annotation}      % Annotation
+\include{parts/10_introduction}    % Introduction
+\include{parts/20_lit_review}      % Literature Review
+\include{parts/30_methodoloy}      % Methodology
+
+\include{parts/50_project_eda}     %
+\include{parts/52_project_regr}    %
+
+\include{parts/70_conclusion}      % Conclusion
+\include{parts/80_acronyms}        % Acronyms, abbreviations and notation
+\include{parts/84_dictionary}      % Terminology
+\include{parts/86_references}      % References
+\include{parts/88_lists}           % List of figures and tables
+
+%\appendix
+\include{parts/90_appendix_A}      % Appendix A
+\include{parts/91_appendix_B}      % Appendix B
+
+\end{document}
