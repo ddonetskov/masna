@@ -39,14 +39,27 @@
     
 % The structure according to the requirements)
 \include{parts/01_title}           % The title page
+
+% using \frontmatter is more appropriate then \pagenumbering{roman}
+%\pagenumbering{roman}
+\frontmatter
+
 \include{parts/02_contents}        % Contents
 \include{parts/05_annotation}      % Annotation
+
+% using \mainmatter is more appropriate then \pagenumbering{arabic}
+%\pagenumbering{arabic}
+\mainmatter
+
 \include{parts/10_introduction}    % Introduction
+
 \include{parts/20_lit_review}      % Literature Review
 \include{parts/30_methodoloy}      % Methodology
 
-\include{parts/50_project_eda}     %
-\include{parts/52_project_regr}    %
+\include{parts/50_project_1}       %
+\include{parts/52_project_2}       %
+
+\backmatter
 
 \include{parts/70_conclusion}      % Conclusion
 \include{parts/80_acronyms}        % Acronyms, abbreviations and notation
@@ -54,7 +67,7 @@
 \include{parts/86_references}      % References
 \include{parts/88_lists}           % List of figures and tables
 
-%\appendix
+\appendix
 \include{parts/90_appendix_A}      % Appendix A
 \include{parts/91_appendix_B}      % Appendix B
 

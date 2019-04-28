@@ -1,8 +1,5 @@
 \usepackage{etoolbox}       % for advanced tests
-\providebool{presentation}
-
-%\usepackage{ltxcmds}
-\usepackage{ifluatex}
+%\providebool{presentation}
 
 % ------------------------------------------------------------------------------
 % Geometry
@@ -25,6 +22,9 @@
 % Page No above the page numbers in Contents
 % http://tex.stackexchange.com/a/306950
 \usepackage{afterpage}
+
+%\usepackage{caption}
+%\usepackage{subcaption}         % subcaptions in figures
 
 % ------------------------------------------------------------------------------
 % Math
@@ -122,10 +122,11 @@
 \usepackage{tabu, tabulary}      % таблицы с автоматически подбирающейся шириной столбцов
 
 % ------------------------------------------------------------------------------
-% Graphics
+% Figures, graphics
 % ------------------------------------------------------------------------------
 
-\usepackage{graphicx}
+% btw, graphicx is automatically loaded by memoir
+\usepackage{graphicx}       
 
 % ------------------------------------------------------------------------------
 % Links
@@ -135,6 +136,7 @@
 
 % hyperref usually needs to be loaded last
 \usepackage[dvipsnames, table, hyperref]{xcolor}    % Совместимо с tikz
+% btw, url is automatically loaded by memoir
 \usepackage{url}
 
 % ------------------------------------------------------------------------------
